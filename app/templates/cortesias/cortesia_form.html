@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Registrar Cortesía - SABOR{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-gift"></i> Registrar Cortesía</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.persona_id.label.text }}</label>
+                        {{ form.persona_id(class="form-select") }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.producto_id.label.text }}</label>
+                        {{ form.producto_id(class="form-select") }}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form.cantidad.label.text }}</label>
+                            {{ form.cantidad(class="form-control") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form.fecha.label.text }}</label>
+                            {{ form.fecha(class="form-control", type="date") }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.observacion.label.text }}</label>
+                        {{ form.observacion(class="form-control") }}
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> Registrar
+                        </button>
+                        <a href="{{ url_for('cortesias.registro') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Volver
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

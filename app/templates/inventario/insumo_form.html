@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }} - SABOR{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clipboard-data"></i> {{ titulo }}</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.nombre.label.text }}</label>
+                        {{ form.nombre(class="form-control") }}
+                        {% for error in form.nombre.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form.unidad_medida.label.text }}</label>
+                            {{ form.unidad_medida(class="form-select") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form.stock_minimo.label.text }}</label>
+                            {{ form.stock_minimo(class="form-control") }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        {{ form.activo(class="form-check-input") }}
+                        <label class="form-check-label">{{ form.activo.label.text }}</label>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Guardar
+                        </button>
+                        <a href="{{ url_for('inventario.listar') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Volver
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

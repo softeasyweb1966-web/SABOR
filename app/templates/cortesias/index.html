@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Cortesías - SABOR{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="bi bi-gift"></i> Personas (Cortesías)</h3>
+    <div>
+        <a href="{{ url_for('cortesias.registro') }}" class="btn btn-outline-info me-2">
+            <i class="bi bi-list-ul"></i> Ver Cortesías
+        </a>
+        <a href="{{ url_for('cortesias.crear_persona') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nueva Persona
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Teléfono</th>
+                        <th>Observación</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for persona in personas %}
+                    <tr>
+                        <td class="fw-semibold">{{ persona.nombre }}</td>
+                        <td>{{ persona.telefono or '-' }}</td>
+                        <td>{{ persona.observacion or '-' }}</td>
+                        <td>
+                            {% if persona.activa %}
+                            <span class="badge bg-success">Activa</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactiva</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{{ url_for('cortesias.editar_persona', id=persona.id) }}" class="btn btn-sm btn-outline-primary" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form action="{{ url_for('cortesias.eliminar_persona', id=persona.id) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Eliminar esta persona?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not personas %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">No hay personas registradas.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

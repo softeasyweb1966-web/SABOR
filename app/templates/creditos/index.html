@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Créditos - SABOR{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="bi bi-credit-card"></i> Créditos</h3>
+    <a href="{{ url_for('creditos.crear') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Nuevo Crédito
+    </a>
+</div>
+
+<!-- Filtro por estado -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="d-flex align-items-center gap-2">
+            <span class="text-muted small">Estado:</span>
+            <a href="{{ url_for('creditos.index', estado='pendiente') }}" class="btn btn-sm {{ 'btn-warning' if estado == 'pendiente' else 'btn-outline-warning' }}">Pendientes</a>
+            <a href="{{ url_for('creditos.index', estado='abonado') }}" class="btn btn-sm {{ 'btn-info' if estado == 'abonado' else 'btn-outline-info' }}">Abonados</a>
+            <a href="{{ url_for('creditos.index', estado='cancelado') }}" class="btn btn-sm {{ 'btn-success' if estado == 'cancelado' else 'btn-outline-success' }}">Cancelados</a>
+            <a href="{{ url_for('creditos.index', estado='todos') }}" class="btn btn-sm {{ 'btn-secondary' if estado == 'todos' else 'btn-outline-secondary' }}">Todos</a>
+        </div>
+    </div>
+</div>
+
+<!-- Total pendiente -->
+<div class="alert alert-warning">
+    <strong>Total pendiente por cobrar:</strong> ${{ "{:,.0f}".format(total_pendiente) }}
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Cliente</th>
+                        <th class="text-end">Monto</th>
+                        <th class="text-end">Saldo</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for credito in creditos %}
+                    <tr>
+                        <td>{{ credito.fecha.strftime('%d/%m/%Y') }}</td>
+                        <td class="fw-semibold">{{ credito.persona.nombre }}</td>
+                        <td class="text-end">${{ "{:,.0f}".format(credito.monto_total) }}</td>
+                        <td class="text-end fw-semibold">${{ "{:,.0f}".format(credito.saldo_pendiente) }}</td>
+                        <td>
+                            {% if credito.estado == 'pendiente' %}
+                            <span class="badge bg-warning text-dark">Pendiente</span>
+                            {% elif credito.estado == 'abonado' %}
+                            <span class="badge bg-info">Abonado</span>
+                            {% else %}
+                            <span class="badge bg-success">Cancelado</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{{ url_for('creditos.detalle', id=credito.id) }}" class="btn btn-sm btn-outline-primary" title="Detalle/Abonar">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <form action="{{ url_for('creditos.eliminar', id=credito.id) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Eliminar este crédito y sus pagos?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not creditos %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">No hay créditos con este filtro.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

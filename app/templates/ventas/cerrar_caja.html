@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block title %}Cerrar Caja - SABOR{% endblock %}
+{% block content %}
+<div class="mb-3">
+    <h3><i class="bi bi-lock"></i> Cerrar Caja - {{ venta_dia.fecha.strftime('%d/%m/%Y') }}</h3>
+</div>
+
+<div class="row">
+    <!-- Panel izquierdo: Resumen y cierre -->
+    <div class="col-md-5">
+        <!-- Resumen del día -->
+        <div class="card mb-3">
+            <div class="card-header bg-dark text-white">
+                <h6 class="mb-0">Resumen del Día</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <span>Total ventas brutas:</span>
+                    <strong>${{ "{:,.0f}".format(total_ventas) }}</strong>
+                </div>
+                {% if descuento > 0 %}
+                <div class="d-flex justify-content-between text-warning">
+                    <span>Descuento almuerzos:</span>
+                    <span>-${{ "{:,.0f}".format(descuento) }}</span>
+                </div>
+                {% endif %}
+                <hr class="my-2">
+                <div class="d-flex justify-content-between">
+                    <strong class="fs-5">TOTAL NETO:</strong>
+                    <strong class="fs-5" id="lbl-total-neto">${{ "{:,.0f}".format(total_neto) }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desglose calculado automáticamente -->
+        <div class="card mb-3">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0"><i class="bi bi-calculator"></i> Desglose Automático</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr>
+                        <td>Pagos electrónicos:</td>
+                        <td class="text-end fw-semibold" id="lbl-total-elec">${{ "{:,.0f}".format(total_pagos_elec) }}</td>
+                    </tr>
+                    <tr>
+                        <td>Créditos:</td>
+                        <td class="text-end fw-semibold" id="lbl-total-creditos">${{ "{:,.0f}".format(total_creditos) }}</td>
+                    </tr>
+                    <tr class="table-success">
+                        <td><strong>= Efectivo:</strong></td>
+                        <td class="text-end"><strong class="fs-5" id="lbl-efectivo">${{ "{:,.0f}".format(total_neto - total_pagos_elec - total_creditos) }}</strong></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Botón de cierre -->
+        <form method="POST" onsubmit="return confirm('¿Cerrar la caja? Se descontará el inventario.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="accion" value="cerrar">
+            <button type="submit" class="btn btn-warning w-100 btn-lg">
+                <i class="bi bi-lock"></i> Cerrar Caja
+            </button>
+        </form>
+        <a href="{{ url_for('ventas.index') }}" class="btn btn-secondary w-100 mt-2">
+            <i class="bi bi-arrow-left"></i> Volver a Ventas
+        </a>
+    </div>
+
+    <!-- Panel derecho: Pagos electrónicos y créditos -->
+    <div class="col-md-7">
+        <!-- PAGOS ELECTRÓNICOS -->
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0"><i class="bi bi-phone"></i> Pagos Electrónicos</h6>
+            </div>
+            <div class="card-body">
+                <!-- Formulario para agregar pago -->
+                <form method="POST" class="mb-3" id="form-pago">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="accion" value="agregar_pago">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label small mb-0">Plataforma</label>
+                            <select name="plataforma" id="sel-plataforma" class="form-select form-select-sm" required>
+                                <option value="">-- Elegir --</option>
+                                <option value="Nequi">Nequi</option>
+                                <option value="Daviplata">Daviplata</option>
+                                <option value="Cuenta">Cuenta</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small mb-0">Monto</label>
+                            <input type="number" name="monto" id="inp-monto" class="form-control form-control-sm" placeholder="$" min="1" step="1" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small mb-0">Referencia</label>
+                            <input type="text" name="referencia" class="form-control form-control-sm" placeholder="Nro.">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small mb-0">Titular</label>
+                            <input type="text" name="titular" class="form-control form-control-sm" placeholder="Nombre">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-sm btn-primary w-100">
+                                <i class="bi bi-plus"></i> Agregar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Lista de pagos registrados -->
+                {% for plataforma in ['Nequi', 'Daviplata', 'Cuenta'] %}
+                {% if resumen_pagos[plataforma] %}
+                <h6 class="mt-2 mb-1">
+                    {% if plataforma == 'Nequi' %}<span class="badge bg-info">{{ plataforma }}</span>
+                    {% elif plataforma == 'Daviplata' %}<span class="badge" style="background:#e91e63;color:white;">{{ plataforma }}</span>
+                    {% else %}<span class="badge bg-secondary">{{ plataforma }}</span>
+                    {% endif %}
+                </h6>
+                <table class="table table-sm table-bordered mb-1">
+                    <tbody>
+                        {% for p in resumen_pagos[plataforma] %}
+                        <tr>
+                            <td class="text-end fw-semibold" style="width:100px;">${{ "{:,.0f}".format(p.monto) }}</td>
+                            <td>{{ p.referencia or '' }}</td>
+                            <td>{{ p.titular or '' }}</td>
+                            <td style="width:30px;">
+                                <form method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="accion" value="eliminar_pago">
+                                    <input type="hidden" name="pago_id" value="{{ p.id }}">
+                                    <button type="submit" class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-x"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td class="text-end fw-bold">${{ "{:,.0f}".format(resumen_pagos[plataforma]|sum(attribute='monto')) }}</td>
+                            <td colspan="3" class="small text-muted">{{ resumen_pagos[plataforma]|length }} pago(s)</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                {% endif %}
+                {% endfor %}
+
+                {% if not pagos %}
+                <p class="text-muted text-center small py-2">No hay pagos electrónicos. Agrégalos arriba.</p>
+                {% endif %}
+
+                <!-- TOTAL ELECTRÓNICOS (abajo) -->
+                {% if pagos %}
+                <div class="alert alert-primary py-2 mt-2 mb-0">
+                    <div class="d-flex justify-content-between">
+                        <strong>TOTAL ELECTRÓNICOS:</strong>
+                        <strong>${{ "{:,.0f}".format(total_pagos_elec) }}</strong>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- CRÉDITOS DETALLADOS -->
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0"><i class="bi bi-credit-card"></i> Créditos (Fiados)</h6>
+            </div>
+            <div class="card-body">
+                <!-- Formulario para agregar crédito -->
+                <form method="POST" class="mb-3">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="accion" value="agregar_credito">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label small mb-0">Cliente</label>
+                            <select name="persona_id" class="form-select form-select-sm" required>
+                                <option value="">-- Seleccionar --</option>
+                                {% for p in personas %}
+                                <option value="{{ p.id }}">{{ p.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small mb-0">Valor</label>
+                            <input type="number" name="monto_credito" class="form-control form-control-sm" placeholder="$" min="1" step="1" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label small mb-0">Observación (qué generó el crédito)</label>
+                            <input type="text" name="obs_credito" class="form-control form-control-sm" placeholder="Ej: 2 almuerzos + 1 jugo" required>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-sm btn-warning w-100">
+                                <i class="bi bi-plus"></i> Agregar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Lista de créditos del día -->
+                {% if creditos_dia %}
+                <table class="table table-sm table-bordered mb-1">
+                    <tbody>
+                        {% for c in creditos_dia %}
+                        <tr>
+                            <td class="text-end fw-semibold" style="width:100px;">${{ "{:,.0f}".format(c.monto_total) }}</td>
+                            <td>{{ c.persona.nombre }}</td>
+                            <td>{{ c.observacion or '' }}</td>
+                            <td style="width:30px;">
+                                <form method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="accion" value="eliminar_credito">
+                                    <input type="hidden" name="credito_id" value="{{ c.id }}">
+                                    <button type="submit" class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-x"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td class="text-end fw-bold">${{ "{:,.0f}".format(total_creditos) }}</td>
+                            <td colspan="3" class="small text-muted">{{ creditos_dia|length }} crédito(s)</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                {% else %}
+                <p class="text-muted text-center small py-2">No hay créditos registrados para hoy.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Recordar última plataforma seleccionada
+const selPlataforma = document.getElementById('sel-plataforma');
+const inpMonto = document.getElementById('inp-monto');
+const ultimaPlataforma = localStorage.getItem('ultima_plataforma');
+
+if (ultimaPlataforma) {
+    selPlataforma.value = ultimaPlataforma;
+}
+
+selPlataforma.addEventListener('change', function() {
+    localStorage.setItem('ultima_plataforma', this.value);
+    inpMonto.focus();
+});
+
+// Al cargar la página, hacer foco en el monto si ya hay plataforma
+if (selPlataforma.value) {
+    inpMonto.focus();
+}
+</script>
+{% endblock %}

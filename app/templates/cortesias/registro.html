@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Registro de Cortesías - SABOR{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="bi bi-gift"></i> Cortesías del Mes</h3>
+</div>
+
+<!-- Filtro por mes -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="GET" class="d-flex align-items-center gap-3">
+            <label class="text-muted small">Mes:</label>
+            <select name="mes" class="form-select form-select-sm" style="width: auto;">
+                {% for m in range(1, 13) %}
+                <option value="{{ m }}" {{ 'selected' if m == mes }}>{{ ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][m-1] }}</option>
+                {% endfor %}
+            </select>
+            <input type="number" name="anio" class="form-control form-control-sm" style="width: 100px;" value="{{ anio }}">
+            <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
+        </form>
+    </div>
+</div>
+
+<!-- Cortesías desde Ventas del Día -->
+{% if ventas_cortesias %}
+<div class="card mb-3">
+    <div class="card-header bg-info text-white py-2">
+        <h6 class="mb-0">Cortesías registradas en Ventas del Día</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Persona</th>
+                        <th>Producto</th>
+                        <th class="text-center">Cantidad</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in ventas_cortesias %}
+                    <tr>
+                        <td>{{ d.venta_diaria.fecha.strftime('%d/%m/%Y') }}</td>
+                        <td class="fw-semibold">{{ d.cliente_credito.nombre if d.cliente_credito else '-' }}</td>
+                        <td>{{ d.producto.nombre }}</td>
+                        <td class="text-center">{{ d.cantidad }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-info">
+                    <tr>
+                        <td colspan="3" class="fw-bold">Total cortesías del mes:</td>
+                        <td class="text-center fw-bold">{{ ventas_cortesias|sum(attribute='cantidad') }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Cortesías registradas desde el módulo independiente -->
+{% if cortesias %}
+<div class="card">
+    <div class="card-header py-2">
+        <h6 class="mb-0">Cortesías registradas manualmente</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Persona</th>
+                        <th>Producto</th>
+                        <th class="text-center">Cantidad</th>
+                        <th>Observación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cortesia in cortesias %}
+                    <tr>
+                        <td>{{ cortesia.fecha.strftime('%d/%m/%Y') }}</td>
+                        <td class="fw-semibold">{{ cortesia.persona.nombre }}</td>
+                        <td>{{ cortesia.producto.nombre }}</td>
+                        <td class="text-center">{{ cortesia.cantidad }}</td>
+                        <td>{{ cortesia.observacion or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if not ventas_cortesias and not cortesias %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> No hay cortesías registradas en este período.
+</div>
+{% endif %}
+{% endblock %}

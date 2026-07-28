@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Cierre del Día - SABOR{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="bi bi-lock"></i> Cierre - {{ venta_dia.fecha.strftime('%d/%m/%Y') }}</h3>
+    <div>
+        {% if venta_dia.estado == 'cerrado_caja' %}
+        <span class="badge bg-warning text-dark fs-6 p-2">Pendiente validación</span>
+        {% elif venta_dia.estado == 'cerrado_definitivo' %}
+        <span class="badge bg-success fs-6 p-2"><i class="bi bi-check-circle"></i> Cerrado definitivo</span>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Resumen de pagos -->
+<div class="row g-3 mb-4">
+    <div class="col-md-2">
+        <div class="card bg-primary text-white text-center">
+            <div class="card-body py-2">
+                <small>Total</small>
+                <h5 class="mb-0">${{ "{:,.0f}".format(venta_dia.total_ventas) }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-success text-white text-center">
+            <div class="card-body py-2">
+                <small>Efectivo</small>
+                <h5 class="mb-0">${{ "{:,.0f}".format(venta_dia.total_efectivo) }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-info text-white text-center">
+            <div class="card-body py-2">
+                <small>Nequi</small>
+                <h5 class="mb-0">${{ "{:,.0f}".format(venta_dia.total_nequi or 0) }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center" style="background:#e91e63;color:white;">
+            <div class="card-body py-2">
+                <small>Daviplata</small>
+                <h5 class="mb-0">${{ "{:,.0f}".format(venta_dia.total_daviplata or 0) }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-secondary text-white text-center">
+            <div class="card-body py-2">
+                <small>Transferencia</small>
+                <h5 class="mb-0">${{ "{:,.0f}".format(venta_dia.total_transferencia) }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-warning text-dark text-center">
+            <div class="card-body py-2">
+                <small>Crédito</small>
+                <h5 class="mb-0">${{ "{:,.0f}".format(venta_dia.total_credito) }}</h5>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detalle por categoría -->
+{% for cat_nombre, datos in resumen.items() %}
+<div class="card mb-2">
+    <div class="card-header py-2 d-flex justify-content-between">
+        <h6 class="mb-0">{{ cat_nombre }}</h6>
+        <span class="badge bg-primary">{{ datos.total_cantidad }} cant. | ${{ "{:,.0f}".format(datos.total_dinero) }}</span>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <tbody>
+                {% for d in datos.detalles %}
+                <tr>
+                    <td>{{ d.producto.nombre }}</td>
+                    <td class="text-center" style="width:50px;">x{{ d.cantidad }}</td>
+                    <td class="text-end" style="width:90px;">${{ "{:,.0f}".format(d.subtotal) }}</td>
+                </tr>
+                {% endfor %}
+                {% for d in datos.cortesias %}
+                <tr class="table-info">
+                    <td><i class="bi bi-gift"></i> {{ d.producto.nombre }} <span class="badge bg-info">Cortesía</span> {% if d.cliente_credito %}<small class="fw-semibold">- {{ d.cliente_credito.nombre }}</small>{% endif %}</td>
+                    <td class="text-center">x{{ d.cantidad }}</td>
+                    <td class="text-end">$0</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Pagos de créditos de otros días recibidos hoy -->
+{% if pagos_cred_hoy %}
+<div class="card mb-3 border-success">
+    <div class="card-header bg-success text-white py-2">
+        <h6 class="mb-0"><i class="bi bi-cash-coin"></i> Pagos de Créditos (Otros Días) Recibidos Hoy</h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Cliente</th>
+                    <th>Forma Pago</th>
+                    <th class="text-end">Monto</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in pagos_cred_hoy %}
+                <tr>
+                    <td>{{ p.credito.persona.nombre }}</td>
+                    <td>{{ p.observacion.split('|')[1] if p.observacion and '|' in p.observacion else 'Efectivo' }}</td>
+                    <td class="text-end fw-semibold">${{ "{:,.0f}".format(p.monto) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="table-success">
+                <tr>
+                    <td colspan="2" class="fw-bold">Total recibido otros días:</td>
+                    <td class="text-end fw-bold">${{ "{:,.0f}".format(total_pagos_cred) }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Resumen final de efectivo -->
+<div class="card mb-3 border-dark">
+    <div class="card-header bg-dark text-white py-2">
+        <h6 class="mb-0"><i class="bi bi-wallet2"></i> Resumen de Efectivo</h6>
+    </div>
+    <div class="card-body py-2">
+        <table class="table table-sm table-borderless mb-0">
+            <tr>
+                <td>Efectivo ventas del día:</td>
+                <td class="text-end fw-semibold">${{ "{:,.0f}".format(efectivo_ventas) }}</td>
+            </tr>
+            {% if efectivo_otros > 0 %}
+            <tr class="text-success">
+                <td>Efectivo pagos otros días:</td>
+                <td class="text-end fw-semibold">+${{ "{:,.0f}".format(efectivo_otros) }}</td>
+            </tr>
+            {% endif %}
+            <tr class="table-dark">
+                <td><strong>TOTAL EFECTIVO EN CAJA:</strong></td>
+                <td class="text-end"><strong class="fs-5">${{ "{:,.0f}".format(efectivo_ventas + efectivo_otros) }}</strong></td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<!-- Acciones -->
+<div class="mt-4 d-flex gap-2">>
+    {% if venta_dia.estado == 'cerrado_caja' %}
+    <form action="{{ url_for('ventas.validar_cierre', id=venta_dia.id) }}" method="POST" onsubmit="return confirm('¿Validar cierre definitivo? No se podrá modificar después.');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-success">
+            <i class="bi bi-check-circle"></i> Validar Cierre Definitivo
+        </button>
+    </form>
+    <form action="{{ url_for('ventas.reabrir', id=venta_dia.id) }}" method="POST" onsubmit="return confirm('¿Reabrir este día? Se revertirá el inventario.');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline-danger">
+            <i class="bi bi-unlock"></i> Reabrir
+        </button>
+    </form>
+    {% endif %}
+    <a href="{{ url_for('ventas.historial') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Historial
+    </a>
+</div>
+{% endblock %}

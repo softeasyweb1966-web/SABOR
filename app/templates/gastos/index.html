@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Gastos - SABOR{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="bi bi-cash-stack"></i> Gastos Administrativos</h3>
+    <div>
+        <a href="{{ url_for('gastos.tipos') }}" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-tags"></i> Tipos
+        </a>
+        <a href="{{ url_for('gastos.registrar') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nuevo Gasto
+        </a>
+    </div>
+</div>
+
+<!-- Filtro por mes -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="GET" class="d-flex align-items-center gap-3">
+            <label class="text-muted small">Mes:</label>
+            <select name="mes" class="form-select form-select-sm" style="width: auto;">
+                {% for m in range(1, 13) %}
+                <option value="{{ m }}" {{ 'selected' if m == mes }}>{{ ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][m-1] }}</option>
+                {% endfor %}
+            </select>
+            <input type="number" name="anio" class="form-control form-control-sm" style="width: 100px;" value="{{ anio }}">
+            <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
+        </form>
+    </div>
+</div>
+
+<!-- Total del mes -->
+<div class="alert alert-info">
+    <strong>Total gastos del mes:</strong> ${{ "{:,.0f}".format(total_mes) }}
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Descripción</th>
+                        <th>Detalle</th>
+                        <th>Forma Pago</th>
+                        <th class="text-end">Monto</th>
+                        <th class="text-center">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for gasto in gastos %}
+                    <tr>
+                        <td>{{ gasto.fecha.strftime('%d/%m/%Y') }}</td>
+                        <td><span class="badge bg-secondary">{{ gasto.tipo_gasto.nombre }}</span></td>
+                        <td>{{ gasto.descripcion }}</td>
+                        <td class="small text-muted">{{ gasto.detalle or '-' }}</td>
+                        <td><span class="badge bg-info">{{ gasto.forma_pago or 'Efectivo' }}</span></td>
+                        <td class="text-end fw-semibold">${{ "{:,.0f}".format(gasto.monto) }}</td>
+                        <td class="text-center">
+                            <form action="{{ url_for('gastos.eliminar', id=gasto.id) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Eliminar este gasto?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not gastos %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">No hay gastos en este período.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

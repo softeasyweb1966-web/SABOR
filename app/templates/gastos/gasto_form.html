@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Registrar Gasto - SABOR{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-cash-stack"></i> Registrar Gasto</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.tipo_gasto_id.label.text }}</label>
+                        {{ form.tipo_gasto_id(class="form-select") }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.descripcion.label.text }}</label>
+                        {{ form.descripcion(class="form-control", placeholder="Ej: Pago nómina quincenal, Factura agua") }}
+                        {% for error in form.descripcion.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.detalle.label.text }}</label>
+                        {{ form.detalle(class="form-control", placeholder="Ej: Juan Pérez, Ref. 123456, EPM") }}
+                        <div class="form-text">Para nómina: nombre del empleado. Para servicios: referencia y empresa.</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">{{ form.monto.label.text }}</label>
+                            {{ form.monto(class="form-control") }}
+                            {% for error in form.monto.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">{{ form.forma_pago.label.text }}</label>
+                            {{ form.forma_pago(class="form-select") }}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">{{ form.fecha.label.text }}</label>
+                            {{ form.fecha(class="form-control", type="date") }}
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> Registrar
+                        </button>
+                        <a href="{{ url_for('gastos.index') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Volver
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+Requerimientos :
+
+La imagen planilla-diaria.jpeg muestra una plantilla diligenciada del informe diario final de las ventas del restaurante,
+se necesita hacer un software en python, flask, pandas con motor de bd Postgress, siempre trabajado en un ambiente virtual.
+
+Debemos hacer un aplicativo que haga lo siguiente :
+
+1. Permita registrar los productos a vender y definir de ellos que se resta al inventario cada vez que se vende.
+2. Registrar las compras en las mismas unidades en que se venden.
+3. Algunas personas tienen cortesías se debe poder registrar esas personas y guardar una relación del consumo mensual.
+4. Debemos registrar varias formas de pago
+5. Debe haber una opción para definir los productos y lo que se descarga del inventario.
+6. Otra opción para el registro diario de las ventas.
+7. en el registro diario de las ventas debemos controlar ventas a crédito y luego poder dar cancelado o tener estados de cuenta de los créditos 
+8.algunas ventas se debe permitir descuento 
+9.aparte de las compras debemos tener una opción para registrar los gastos administrativos. los gastos: nomina, servicios,y o   otros gastos 
+10. Explicación de la imagen : 
+    10.1 CATEGORIAS : Desayunos - Almuerzos - Parrillas - Porciones y Otros - Bebidas 
+        Con estas categorías debemos crear tablas (CRUD) para definir lo que lleva cada una de ellas, en cada uno de los 
+	items debemos poder definir que resta del inventario
+	Se debe totalizar  en la hoja del día como se ve en la imagen
+    10.2 En la hoja de registro diaria debe permitir seleccionar de cada categoría lo que se vende.
+    10.3 Se debe totalizar el total de las ventas y las cantidades por item dentro de cada categoría.
+    10.4 Luego se registrar solo en la categoría de almuerzos los que salen por cortesías y a quien se le despacha, estos
+         almuerzos restan solo cantidades y no suman dinero.
+    10.5 Registro de créditos, de las ventas registradas en la parte de arriba se debe poder especificar cuales fueron a
+	 crédito y para quien, para empezar a controlar las deudas.
+    10.6 Debe poder registrar pagos de otros días y los trae de los que hemos registrado en el punto anterior para permitir 	 abonar y o cancelar total
+    10.7 El total de las ventas del día debe tener la opción de desglosar como se recibió efectivo, nequi, crédito
+    10.8 Ya con eso se debe generar el total en efectivo, transferencia y crédito del día, y se deben efectuar los 	respectivos descuentos del inventario. 
+
+
+
+OPORTUNIDADES DE MEJORA SOLICITADAS POR EL USUARIO
+En la pantalla que registra las ventas del día :
+
+1. Mostrar las categorías no como ayuda , sino como menus desplegables para no ir a seleccionar la categoría y luego
+	los productos de cada categoría.
+2. Cuando se selecciona un producto de una categoría y la cantidad siempre vuelve a la categoría de Almuerzo, es mejor
+	que regrese a la última que s ingreso.
+3. Los descuentos solo van asociados a los almuerzos y no va en detalle sino al final del total de almuerzos.
+4. Debemos tener la opción de registrar pagos de otros días, para cancelar y/o abonar los créditos (ver quienes deben).
+4. La forma de pago no se pide a medida que se registran los productos, debe haber una opción que permita una vez se hallan
+	registrado todo lo que se vendió en el día de todas las categoría especificar cuanto entro a Nequi, cuanto a 	Daviplata, cuanto a la Cuenta, cuanto a Crédito.
+5. Debemos poder registrar las cortesías solo aplica para almuerzos, nada más sale en cortesía. 
+6. El cierre de día debe manejar unos estados , cuando cierra la persona de caja es uno y cuando recibe el cierre el dueño 
+	o la persona que designa el dueño, en ese caso ya queda cerrado un día de manera definitiva y no se puede cambiar
+	nada.
+7. En el Dashboard se quiere ver las ventas del día y el detalle por categoría que muestre cantidad y valor
+
+ 
+
+
+
+	 
+         
