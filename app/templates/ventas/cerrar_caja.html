@@ -47,9 +47,15 @@
                         <td>Créditos:</td>
                         <td class="text-end fw-semibold" id="lbl-total-creditos">${{ "{:,.0f}".format(total_creditos) }}</td>
                     </tr>
+                    {% if total_pagos_creditos_hoy > 0 %}
+                    <tr class="text-success">
+                        <td>Pagos créditos recibidos:</td>
+                        <td class="text-end fw-semibold">+${{ "{:,.0f}".format(total_pagos_creditos_hoy) }}</td>
+                    </tr>
+                    {% endif %}
                     <tr class="table-success">
                         <td><strong>= Efectivo:</strong></td>
-                        <td class="text-end"><strong class="fs-5" id="lbl-efectivo">${{ "{:,.0f}".format(total_neto - total_pagos_elec - total_creditos) }}</strong></td>
+                        <td class="text-end"><strong class="fs-5" id="lbl-efectivo">${{ "{:,.0f}".format(total_neto - total_pagos_elec - total_creditos + total_pagos_creditos_hoy) }}</strong></td>
                     </tr>
                 </table>
             </div>
@@ -231,6 +237,41 @@
                 {% endif %}
             </div>
         </div>
+
+        <!-- PAGOS DE CRÉDITOS RECIBIDOS HOY -->
+        {% if pagos_creditos_hoy %}
+        <div class="card mt-3">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0"><i class="bi bi-cash-coin"></i> Pagos de Créditos Recibidos Hoy</h6>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Forma Pago</th>
+                            <th class="text-end">Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in pagos_creditos_hoy %}
+                        <tr>
+                            <td>{{ p.credito.persona.nombre }}</td>
+                            <td>{{ p.observacion.split('|')[1] if p.observacion and '|' in p.observacion else 'Efectivo' }}</td>
+                            <td class="text-end fw-semibold">${{ "{:,.0f}".format(p.monto) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-success">
+                        <tr>
+                            <td colspan="2" class="fw-bold">Total recibido:</td>
+                            <td class="text-end fw-bold">${{ "{:,.0f}".format(total_pagos_creditos_hoy) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

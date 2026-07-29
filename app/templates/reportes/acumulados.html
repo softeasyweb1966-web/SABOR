@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Acumulados del Mes - SABOR{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3><i class="bi bi-graph-up"></i> Acumulados y Día Actual</h3>
+    <a href="{{ url_for('reportes.index') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Reportes
+    </a>
+</div>
+
+<!-- Filtro de mes -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="GET" class="d-flex align-items-center gap-3">
+            <label class="text-muted small mb-0">Mes:</label>
+            <select name="mes" class="form-select form-select-sm" style="width:auto;">
+                {% for m in range(1, 13) %}
+                <option value="{{ m }}" {{ 'selected' if m == mes }}>{{ ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][m-1] }}</option>
+                {% endfor %}
+            </select>
+            <input type="number" name="anio" class="form-control form-control-sm" style="width:100px;" value="{{ anio }}">
+            <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-search"></i> Ver</button>
+        </form>
+    </div>
+</div>
+
+<!-- Tarjetas de resumen -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white text-center">
+            <div class="card-body py-2">
+                <small>Total Acumulado</small>
+                <h4 class="mb-0">${{ "{:,.0f}".format(total_acumulado) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white text-center">
+            <div class="card-body py-2">
+                <small>Días Cerrados</small>
+                <h4 class="mb-0">{{ dias_cerrados }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white text-center">
+            <div class="card-body py-2">
+                <small>Promedio/Día (sin hoy)</small>
+                <h4 class="mb-0">${{ "{:,.0f}".format(promedio_sin_hoy) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark text-center">
+            <div class="card-body py-2">
+                <small>Promedio/Día (con hoy)</small>
+                <h4 class="mb-0">${{ "{:,.0f}".format(promedio_con_hoy) }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráfica de ventas por día -->
+{% if ventas_mes %}
+<div class="card mb-4">
+    <div class="card-header py-2">
+        <h6 class="mb-0"><i class="bi bi-bar-chart"></i> Ventas por Día</h6>
+    </div>
+    <div class="card-body">
+        <canvas id="chartVentas" height="80"></canvas>
+    </div>
+</div>
+{% endif %}
+
+<!-- Acumulado por categoría y producto -->
+{% for cat_nombre, datos in resumen_cat.items() %}
+<div class="card mb-2">
+    <div class="card-header py-2 d-flex justify-content-between">
+        <h6 class="mb-0">{{ cat_nombre }}</h6>
+        <span class="badge bg-success">{{ datos.total_cantidad }} cant. | ${{ "{:,.0f}".format(datos.total_valor) }}</span>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+            <tbody>
+                {% for prod_nombre, prod_datos in datos.productos.items() %}
+                <tr>
+                    <td>{{ prod_nombre }}</td>
+                    <td class="text-end" style="width:80px;">{{ prod_datos.cantidad }}</td>
+                    <td class="text-end" style="width:110px;">${{ "{:,.0f}".format(prod_datos.valor) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Total general -->
+<div class="card bg-dark text-white">
+    <div class="card-body py-2 d-flex justify-content-between">
+        <h5 class="mb-0">TOTAL VENTAS DEL MES:</h5>
+        <h5 class="mb-0">${{ "{:,.0f}".format(total_acumulado) }}</h5>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const ctx = document.getElementById('chartVentas');
+if (ctx) {
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ grafica_labels|safe }},
+            datasets: [{
+                label: 'Ventas del día ($)',
+                data: {{ grafica_valores|safe }},
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

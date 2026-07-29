@@ -1,100 +1,49 @@
 {% extends "base.html" %}
-{% block title %}Inventario - Movimientos - SABOR{% endblock %}
+{% block title %}Inventario - SABOR{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h3><i class="bi bi-clipboard-data"></i> Movimientos de Inventario</h3>
-    <div>
-        <a href="{{ url_for('inventario.insumos') }}" class="btn btn-outline-secondary btn-sm me-1">
-            <i class="bi bi-list-ul"></i> Insumos
-        </a>
-        <a href="{{ url_for('inventario.compras') }}" class="btn btn-outline-success btn-sm">
-            <i class="bi bi-bag-plus"></i> Compras
-        </a>
-    </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="bi bi-clipboard-data"></i> Inventario (Stock)</h3>
+    <a href="{{ url_for('inventario.compras') }}" class="btn btn-outline-success">
+        <i class="bi bi-bag-plus"></i> Compras
+    </a>
 </div>
 
-<!-- Selector de fecha -->
-<div class="card mb-3">
-    <div class="card-body py-2">
-        <form method="GET" class="d-flex align-items-center gap-3">
-            <label class="text-muted small mb-0">Fecha:</label>
-            <input type="date" name="fecha" class="form-control form-control-sm" style="width:180px;"
-                   value="{{ fecha_sel.strftime('%Y-%m-%d') if fecha_sel else '' }}">
-            <button type="submit" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-search"></i> Ver
-            </button>
-            {% if dias_disponibles %}
-            <span class="text-muted small ms-3">Últimos días:</span>
-            {% for dia in dias_disponibles[:5] %}
-            <a href="{{ url_for('inventario.listar', fecha=dia.fecha.strftime('%Y-%m-%d')) }}"
-               class="btn btn-sm {{ 'btn-primary' if dia.fecha == fecha_sel else 'btn-outline-secondary' }}">
-                {{ dia.fecha.strftime('%d/%m') }}
-            </a>
-            {% endfor %}
-            {% endif %}
-        </form>
-    </div>
-</div>
-
-{% if venta_dia %}
-<div class="alert alert-info py-2">
-    <strong>Día:</strong> {{ fecha_sel.strftime('%d/%m/%Y') }}
-    {% if venta_dia.estado == 'cerrado_definitivo' %}
-    <span class="badge bg-success ms-2">Cerrado Definitivo</span>
-    {% elif venta_dia.estado == 'cerrado_caja' %}
-    <span class="badge bg-warning text-dark ms-2">Cerrado Caja</span>
-    {% else %}
-    <span class="badge bg-primary ms-2">Abierto (movimientos pendientes)</span>
-    {% endif %}
-</div>
-{% endif %}
-
-{% if movimientos %}
 <div class="card">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover table-sm mb-0">
-                <thead class="table-dark">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
                     <tr>
-                        <th>Producto / Insumo</th>
+                        <th>Producto</th>
+                        <th>Categoría</th>
                         <th>Unidad</th>
-                        <th class="text-end">Saldo Inicio</th>
-                        <th class="text-end text-success">+ Compras</th>
-                        <th class="text-end">Subtotal</th>
-                        <th class="text-end text-danger">- Ventas</th>
-                        <th class="text-end fw-bold">Nuevo Saldo</th>
+                        <th class="text-end">Stock Actual</th>
+                        <th class="text-end">Stock Mínimo</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for m in movimientos %}
-                    <tr>
-                        <td class="fw-semibold">{{ m.insumo.nombre }}</td>
-                        <td>{{ m.insumo.unidad_medida }}</td>
-                        <td class="text-end">{{ "%.1f"|format(m.saldo_inicio) }}</td>
-                        <td class="text-end text-success">{{ "%.1f"|format(m.compras) if m.compras > 0 else '-' }}</td>
-                        <td class="text-end">{{ "%.1f"|format(m.saldo_inicio + m.compras) }}</td>
-                        <td class="text-end text-danger">{{ "%.1f"|format(m.ventas) }}</td>
-                        <td class="text-end fw-bold {{ 'text-danger' if m.saldo_final <= m.insumo.stock_minimo else '' }}">
-                            {{ "%.1f"|format(m.saldo_final) }}
-                            {% if m.saldo_final <= m.insumo.stock_minimo %}
-                            <i class="bi bi-exclamation-triangle text-warning"></i>
+                    {% for p in productos %}
+                    <tr class="{{ 'table-warning' if p.stock_actual <= p.stock_minimo else '' }}">
+                        <td class="fw-semibold">
+                            {{ p.nombre }}
+                            {% if p.stock_actual <= p.stock_minimo %}
+                            <i class="bi bi-exclamation-triangle text-warning" title="Stock bajo"></i>
                             {% endif %}
                         </td>
+                        <td><span class="badge bg-info">{{ p.categoria.nombre }}</span></td>
+                        <td>{{ p.unidad_medida }}</td>
+                        <td class="text-end">{{ "%.0f"|format(p.stock_actual) }}</td>
+                        <td class="text-end">{{ "%.0f"|format(p.stock_minimo) }}</td>
                     </tr>
                     {% endfor %}
+                    {% if not productos %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">No hay productos con inventario.</td>
+                    </tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>
     </div>
 </div>
-{% else %}
-<div class="alert alert-warning">
-    <i class="bi bi-info-circle"></i> No hay movimientos de inventario para esta fecha.
-    {% if not venta_dia %}
-    No se encontró registro de ventas para {{ fecha_sel.strftime('%d/%m/%Y') }}.
-    {% elif venta_dia.estado == 'abierto' %}
-    El día aún está abierto. Los movimientos se reflejan al cerrar la caja.
-    {% endif %}
-</div>
-{% endif %}
 {% endblock %}

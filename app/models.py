@@ -47,7 +47,7 @@ def load_user(user_id):
 
 
 # ============================================================
-# CATEGORÍAS Y PRODUCTOS
+# CATEGORÍAS (única tabla para ventas y compras)
 # ============================================================
 
 class Categoria(db.Model):
@@ -56,99 +56,88 @@ class Categoria(db.Model):
     nombre = db.Column(db.String(100), unique=True, nullable=False)
     descripcion = db.Column(db.String(200))
     activa = db.Column(db.Boolean, default=True)
+    visible_ventas = db.Column(db.Boolean, default=True)
+    visible_compras = db.Column(db.Boolean, default=True)
     productos = db.relationship('Producto', backref='categoria', lazy=True)
 
     def __repr__(self):
         return f'<Categoria {self.nombre}>'
 
 
+# ============================================================
+# PRODUCTOS (unificado: productos, insumos, servicios)
+# ============================================================
+
 class Producto(db.Model):
     __tablename__ = 'productos'
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(150), nullable=False)
-    precio = db.Column(db.Numeric(12, 2), nullable=False)
     categoria_id = db.Column(db.Integer, db.ForeignKey('categorias.id'), nullable=False)
+    tipo = db.Column(db.String(20), default='producto')  # producto, servicio
+    precio = db.Column(db.Numeric(12, 2), default=0)  # precio de venta (0 si no se vende)
+    se_vende = db.Column(db.Boolean, default=True)  # aparece en ventas del día
+    maneja_inventario = db.Column(db.Boolean, default=False)  # tiene stock que se mueve
+    unidad_medida = db.Column(db.String(50), default='unidades')
+    stock_actual = db.Column(db.Numeric(12, 3), default=0)
+    stock_minimo = db.Column(db.Numeric(12, 3), default=0)
     activo = db.Column(db.Boolean, default=True)
-    controla_inventario_directo = db.Column(db.Boolean, default=False)
-    insumo_directo_id = db.Column(db.Integer, db.ForeignKey('insumos.id'), nullable=True)
     fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
-    # Relación con insumos que descuenta (receta)
-    descuentos_inventario = db.relationship('ProductoInsumo', backref='producto', lazy=True)
-    # Insumo directo (1 a 1, ej: Coca-Cola)
-    insumo_directo = db.relationship('Insumo', backref='productos_directos', foreign_keys=[insumo_directo_id])
+    # Receta: qué productos descuenta al venderse
+    receta = db.relationship('Receta', backref='producto', lazy=True,
+                             foreign_keys='Receta.producto_id')
 
     def __repr__(self):
         return f'<Producto {self.nombre}>'
 
 
-# ============================================================
-# INVENTARIO E INSUMOS
-# ============================================================
-
-class Insumo(db.Model):
-    __tablename__ = 'insumos'
-    id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(150), nullable=False)
-    unidad_medida = db.Column(db.String(50), nullable=False)  # kg, litros, unidades, etc.
-    stock_actual = db.Column(db.Numeric(12, 3), default=0)
-    stock_minimo = db.Column(db.Numeric(12, 3), default=0)
-    activo = db.Column(db.Boolean, default=True)
-
-    def __repr__(self):
-        return f'<Insumo {self.nombre} ({self.stock_actual} {self.unidad_medida})>'
-
-
-class MovimientoInventario(db.Model):
-    """Foto diaria del movimiento de cada insumo. Se registra al cerrar caja."""
-    __tablename__ = 'movimientos_inventario'
-    id = db.Column(db.Integer, primary_key=True)
-    fecha = db.Column(db.Date, nullable=False)
-    insumo_id = db.Column(db.Integer, db.ForeignKey('insumos.id'), nullable=False)
-    saldo_inicio = db.Column(db.Numeric(12, 3), nullable=False, default=0)
-    compras = db.Column(db.Numeric(12, 3), nullable=False, default=0)
-    ventas = db.Column(db.Numeric(12, 3), nullable=False, default=0)
-    saldo_final = db.Column(db.Numeric(12, 3), nullable=False, default=0)
-    insumo = db.relationship('Insumo', backref='movimientos')
-
-    __table_args__ = (db.UniqueConstraint('fecha', 'insumo_id', name='uq_mov_fecha_insumo'),)
-
-
-class ProductoInsumo(db.Model):
-    """Define qué insumos y cantidades se descuentan al vender un producto."""
-    __tablename__ = 'producto_insumo'
+class Receta(db.Model):
+    """Define qué productos/insumos se descuentan al vender un producto."""
+    __tablename__ = 'recetas'
     id = db.Column(db.Integer, primary_key=True)
     producto_id = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
-    insumo_id = db.Column(db.Integer, db.ForeignKey('insumos.id'), nullable=False)
-    cantidad = db.Column(db.Numeric(12, 3), nullable=False)  # cantidad que se descuenta por unidad vendida
-    insumo = db.relationship('Insumo', backref='productos_asociados')
+    insumo_id = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
+    cantidad = db.Column(db.Numeric(12, 3), nullable=False)
+    insumo = db.relationship('Producto', foreign_keys=[insumo_id], backref='usado_en_recetas')
 
 
-class CategoriaCompra(db.Model):
-    """Categorías para clasificar las compras."""
-    __tablename__ = 'categorias_compra'
-    id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(100), unique=True, nullable=False)
-    activa = db.Column(db.Boolean, default=True)
-
-    def __repr__(self):
-        return f'<CategoriaCompra {self.nombre}>'
-
+# ============================================================
+# COMPRAS
+# ============================================================
 
 class Compra(db.Model):
-    """Registro de compras de insumos para alimentar el inventario."""
+    """Registro de compras."""
     __tablename__ = 'compras'
     id = db.Column(db.Integer, primary_key=True)
-    categoria_compra_id = db.Column(db.Integer, db.ForeignKey('categorias_compra.id'), nullable=True)
-    insumo_id = db.Column(db.Integer, db.ForeignKey('insumos.id'), nullable=False)
+    producto_id = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
+    categoria_id = db.Column(db.Integer, db.ForeignKey('categorias.id'), nullable=True)
     cantidad = db.Column(db.Numeric(12, 3), nullable=False)
     costo_total = db.Column(db.Numeric(12, 2), nullable=False)
     fecha = db.Column(db.Date, default=date.today)
     proveedor = db.Column(db.String(150))
     observacion = db.Column(db.String(200))
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
-    categoria_compra = db.relationship('CategoriaCompra', backref='compras')
-    insumo = db.relationship('Insumo', backref='compras')
+    producto = db.relationship('Producto', backref='compras')
+    categoria = db.relationship('Categoria', backref='compras')
     usuario = db.relationship('Usuario', backref='compras_registradas')
+
+
+# ============================================================
+# MOVIMIENTOS DE INVENTARIO
+# ============================================================
+
+class MovimientoInventario(db.Model):
+    """Foto diaria del movimiento de cada producto con inventario."""
+    __tablename__ = 'movimientos_inventario'
+    id = db.Column(db.Integer, primary_key=True)
+    fecha = db.Column(db.Date, nullable=False)
+    producto_id = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
+    saldo_inicio = db.Column(db.Numeric(12, 3), nullable=False, default=0)
+    compras = db.Column(db.Numeric(12, 3), nullable=False, default=0)
+    ventas = db.Column(db.Numeric(12, 3), nullable=False, default=0)
+    saldo_final = db.Column(db.Numeric(12, 3), nullable=False, default=0)
+    producto = db.relationship('Producto', backref='movimientos')
+
+    __table_args__ = (db.UniqueConstraint('fecha', 'producto_id', name='uq_mov_fecha_producto'),)
 
 
 # ============================================================
@@ -158,7 +147,7 @@ class Compra(db.Model):
 class FormaPago(db.Model):
     __tablename__ = 'formas_pago'
     id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(50), unique=True, nullable=False)  # Efectivo, Nequi, Crédito
+    nombre = db.Column(db.String(50), unique=True, nullable=False)
     activa = db.Column(db.Boolean, default=True)
 
     def __repr__(self):
@@ -181,9 +170,8 @@ class VentaDiaria(db.Model):
     total_transferencia = db.Column(db.Numeric(12, 2), default=0)
     total_credito = db.Column(db.Numeric(12, 2), default=0)
     descuento_almuerzos = db.Column(db.Numeric(12, 2), default=0)
-    # Estados: abierto, cerrado_caja, cerrado_definitivo
     estado = db.Column(db.String(30), default='abierto')
-    cerrada = db.Column(db.Boolean, default=False)  # mantener por compatibilidad
+    cerrada = db.Column(db.Boolean, default=False)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
     cerrado_por_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
     usuario = db.relationship('Usuario', backref='ventas_registradas', foreign_keys=[usuario_id])
@@ -196,14 +184,14 @@ class VentaDiaria(db.Model):
 
 
 class PagoElectronico(db.Model):
-    """Detalle individual de pagos electrónicos para cruzar con plataformas."""
+    """Detalle individual de pagos electrónicos."""
     __tablename__ = 'pagos_electronicos'
     id = db.Column(db.Integer, primary_key=True)
     venta_diaria_id = db.Column(db.Integer, db.ForeignKey('ventas_diarias.id'), nullable=False)
-    plataforma = db.Column(db.String(30), nullable=False)  # Nequi, Daviplata, Cuenta
+    plataforma = db.Column(db.String(30), nullable=False)
     monto = db.Column(db.Numeric(12, 2), nullable=False)
-    referencia = db.Column(db.String(100))  # Número de transacción o referencia
-    titular = db.Column(db.String(100))  # Nombre de quien paga (opcional)
+    referencia = db.Column(db.String(100))
+    titular = db.Column(db.String(100))
     observacion = db.Column(db.String(200))
 
     def __repr__(self):
@@ -230,7 +218,7 @@ class VentaDetalle(db.Model):
 
 
 # ============================================================
-# CORTESÍAS Y PERSONAS
+# TERCEROS (cortesías y créditos)
 # ============================================================
 
 class Persona(db.Model):
@@ -240,7 +228,7 @@ class Persona(db.Model):
     nombre = db.Column(db.String(150), nullable=False)
     telefono = db.Column(db.String(20))
     observacion = db.Column(db.String(200))
-    tipo = db.Column(db.String(20), default='ambos')  # cortesia, credito, ambos
+    tipo = db.Column(db.String(20), default='ambos')
     activa = db.Column(db.Boolean, default=True)
 
     def __repr__(self):
@@ -272,7 +260,7 @@ class Credito(db.Model):
     fecha = db.Column(db.Date, default=date.today)
     monto_total = db.Column(db.Numeric(12, 2), nullable=False)
     saldo_pendiente = db.Column(db.Numeric(12, 2), nullable=False)
-    estado = db.Column(db.String(20), default='pendiente')  # pendiente, abonado, cancelado
+    estado = db.Column(db.String(20), default='pendiente')
     venta_detalle_id = db.Column(db.Integer, db.ForeignKey('ventas_detalle.id'), nullable=True)
     observacion = db.Column(db.String(200))
     persona = db.relationship('Persona', backref='creditos')
@@ -299,7 +287,7 @@ class PagoCredito(db.Model):
 class TipoGasto(db.Model):
     __tablename__ = 'tipos_gasto'
     id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(100), unique=True, nullable=False)  # Nómina, Servicios, Otros
+    nombre = db.Column(db.String(100), unique=True, nullable=False)
     activo = db.Column(db.Boolean, default=True)
 
     def __repr__(self):
@@ -312,9 +300,42 @@ class Gasto(db.Model):
     tipo_gasto_id = db.Column(db.Integer, db.ForeignKey('tipos_gasto.id'), nullable=False)
     fecha = db.Column(db.Date, default=date.today)
     descripcion = db.Column(db.String(200), nullable=False)
-    detalle = db.Column(db.String(200))  # Empleado, referencia servicio, etc.
+    detalle = db.Column(db.String(200))
     monto = db.Column(db.Numeric(12, 2), nullable=False)
-    forma_pago = db.Column(db.String(30), default='Efectivo')  # Efectivo, Nequi, Daviplata, Cuenta
+    forma_pago = db.Column(db.String(30), default='Efectivo')
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
     tipo_gasto = db.relationship('TipoGasto', backref='gastos')
     usuario = db.relationship('Usuario', backref='gastos_registrados')
+
+
+# ============================================================
+# TABLAS LEGACY (mantener por compatibilidad con datos existentes)
+# ============================================================
+
+class CategoriaCompra(db.Model):
+    __tablename__ = 'categorias_compra'
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), unique=True, nullable=False)
+    activa = db.Column(db.Boolean, default=True)
+
+
+class Insumo(db.Model):
+    """LEGACY - Se mantiene por datos existentes. Usar Producto en su lugar."""
+    __tablename__ = 'insumos'
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(150), nullable=False)
+    unidad_medida = db.Column(db.String(50), nullable=False)
+    stock_actual = db.Column(db.Numeric(12, 3), default=0)
+    stock_minimo = db.Column(db.Numeric(12, 3), default=0)
+    categoria_compra_id = db.Column(db.Integer, db.ForeignKey('categorias_compra.id'), nullable=True)
+    categoria_id = db.Column(db.Integer, db.ForeignKey('categorias.id'), nullable=True)
+    activo = db.Column(db.Boolean, default=True)
+
+
+class ProductoInsumo(db.Model):
+    """LEGACY - Se mantiene por datos existentes."""
+    __tablename__ = 'producto_insumo'
+    id = db.Column(db.Integer, primary_key=True)
+    producto_id = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
+    insumo_id = db.Column(db.Integer, db.ForeignKey('insumos.id'), nullable=False)
+    cantidad = db.Column(db.Numeric(12, 3), nullable=False)

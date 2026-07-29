@@ -59,7 +59,7 @@ def create_app(config_class=Config):
 
     # Manejar errores CSRF sin sacar al usuario
     from flask_wtf.csrf import CSRFError
-    from flask import flash, redirect, request
+    from flask import flash, redirect, request, url_for
 
     @app.errorhandler(CSRFError)
     def handle_csrf_error(e):

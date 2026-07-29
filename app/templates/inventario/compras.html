@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h3><i class="bi bi-bag-plus"></i> Registro de Compras</h3>
     <div>
-        <a href="{{ url_for('inventario.categorias_compra') }}" class="btn btn-outline-secondary me-2">
+        <a href="{{ url_for('productos.categorias') }}" class="btn btn-outline-secondary me-2">
             <i class="bi bi-tags"></i> Categorías
         </a>
         <a href="{{ url_for('inventario.registrar_compra') }}" class="btn btn-primary">
@@ -34,7 +34,7 @@
                     <tr>
                         <th>Fecha</th>
                         <th>Categoría</th>
-                        <th>Insumo</th>
+                        <th>Producto</th>
                         <th class="text-end">Cantidad</th>
                         <th>Unidad</th>
                         <th class="text-end">Costo</th>
@@ -47,10 +47,10 @@
                     {% for compra in compras %}
                     <tr>
                         <td>{{ compra.fecha.strftime('%d/%m/%Y') }}</td>
-                        <td><span class="badge bg-info">{{ compra.categoria_compra.nombre if compra.categoria_compra else '-' }}</span></td>
-                        <td class="fw-semibold">{{ compra.insumo.nombre }}</td>
-                        <td class="text-end">{{ compra.cantidad }}</td>
-                        <td>{{ compra.insumo.unidad_medida }}</td>
+                        <td><span class="badge bg-info">{{ compra.categoria.nombre if compra.categoria else '-' }}</span></td>
+                        <td class="fw-semibold">{{ compra.producto.nombre if compra.producto else '-' }}</td>
+                        <td class="text-end">{{ "%.0f"|format(compra.cantidad) }}</td>
+                        <td>{{ compra.producto.unidad_medida if compra.producto else '-' }}</td>
                         <td class="text-end">${{ "{:,.0f}".format(compra.costo_total) }}</td>
                         <td>{{ compra.proveedor or '-' }}</td>
                         <td class="small">{{ compra.observacion or '-' }}</td>

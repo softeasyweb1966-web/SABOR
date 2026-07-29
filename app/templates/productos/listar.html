@@ -34,9 +34,9 @@
                     <tr>
                         <th>Producto</th>
                         <th>Categoría</th>
+                        <th>Tipo</th>
                         <th class="text-end">Precio</th>
-                        <th>Insumos</th>
-                        <th>Estado</th>
+                        <th>Marcas</th>
                         <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
@@ -45,31 +45,29 @@
                     <tr>
                         <td class="fw-semibold">{{ prod.nombre }}</td>
                         <td><span class="badge bg-info">{{ prod.categoria.nombre }}</span></td>
+                        <td>
+                            {% if prod.tipo == 'servicio' %}
+                            <span class="badge bg-secondary">Servicio</span>
+                            {% else %}
+                            <span class="badge bg-primary">Producto</span>
+                            {% endif %}
+                        </td>
                         <td class="text-end">${{ "{:,.0f}".format(prod.precio) }}</td>
                         <td>
-                            {% if prod.controla_inventario_directo and prod.insumo_directo %}
-                            <span class="badge bg-primary">Directo: {{ prod.insumo_directo.nombre }}</span>
-                            {% elif prod.descuentos_inventario %}
-                            <span class="badge bg-success">{{ prod.descuentos_inventario|length }} insumo(s)</span>
-                            {% else %}
-                            <span class="badge bg-warning text-dark">Sin definir</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if prod.activo %}
-                            <span class="badge bg-success">Activo</span>
-                            {% else %}
-                            <span class="badge bg-secondary">Inactivo</span>
-                            {% endif %}
+                            {% if prod.se_vende %}<span class="badge bg-success">Vende</span>{% endif %}
+                            {% if prod.maneja_inventario %}<span class="badge bg-warning text-dark">Inventario</span>{% endif %}
+                            {% if prod.receta %}<span class="badge bg-info">Receta</span>{% endif %}
                         </td>
                         <td class="text-center">
-                            <a href="{{ url_for('productos.insumos_producto', id=prod.id) }}" class="btn btn-sm btn-outline-success" title="Definir insumos">
+                            {% if prod.tipo == 'producto' %}
+                            <a href="{{ url_for('productos.receta', id=prod.id) }}" class="btn btn-sm btn-outline-success" title="Receta">
                                 <i class="bi bi-list-check"></i>
                             </a>
+                            {% endif %}
                             <a href="{{ url_for('productos.editar', id=prod.id) }}" class="btn btn-sm btn-outline-primary" title="Editar">
                                 <i class="bi bi-pencil"></i>
                             </a>
-                            <form action="{{ url_for('productos.eliminar', id=prod.id) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Eliminar este producto?');">
+                            <form action="{{ url_for('productos.eliminar', id=prod.id) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Eliminar?');">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
                                     <i class="bi bi-trash"></i>

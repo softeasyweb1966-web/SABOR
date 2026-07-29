@@ -26,8 +26,14 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">{{ form.stock_minimo.label.text }}</label>
-                            {{ form.stock_minimo(class="form-control") }}
+                            {{ form.stock_minimo(class="form-control", step="any") }}
                         </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.categoria_id.label.text }}</label>
+                        {{ form.categoria_id(class="form-select") }}
+                        <div class="form-text">Categoría para filtrar en compras.</div>
                     </div>
 
                     <div class="mb-3 form-check">

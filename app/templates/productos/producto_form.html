@@ -2,7 +2,7 @@
 {% block title %}{{ titulo }} - SABOR{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-md-7">
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-box-seam"></i> {{ titulo }}</h5>
@@ -20,32 +20,42 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">{{ form.precio.label.text }}</label>
-                            {{ form.precio(class="form-control") }}
-                            {% for error in form.precio.errors %}
-                            <div class="text-danger small">{{ error }}</div>
-                            {% endfor %}
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">{{ form.tipo.label.text }}</label>
+                            {{ form.tipo(class="form-select", id="sel-tipo") }}
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">{{ form.categoria_id.label.text }}</label>
                             {{ form.categoria_id(class="form-select") }}
                         </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">{{ form.precio.label.text }}</label>
+                            {{ form.precio(class="form-control") }}
+                        </div>
                     </div>
 
-                    <!-- Control de inventario directo -->
+                    <!-- Opciones según tipo -->
                     <div class="card bg-light mb-3">
                         <div class="card-body py-2">
                             <div class="form-check mb-2">
-                                {{ form.controla_inventario_directo(class="form-check-input", id="chk-inv-directo") }}
-                                <label class="form-check-label fw-semibold" for="chk-inv-directo">
-                                    {{ form.controla_inventario_directo.label.text }}
-                                </label>
-                                <div class="form-text">Actívalo para productos como bebidas o snacks donde el producto es el insumo. Al vender se descuenta 1 unidad automáticamente.</div>
+                                {{ form.se_vende(class="form-check-input") }}
+                                <label class="form-check-label">{{ form.se_vende.label.text }}</label>
                             </div>
-                            <div id="div-insumo-directo" style="{{ '' if form.controla_inventario_directo.data else 'display:none;' }}">
-                                <label class="form-label small">{{ form.insumo_directo_id.label.text }}</label>
-                                {{ form.insumo_directo_id(class="form-select form-select-sm") }}
+                            <div class="form-check mb-2" id="div-inventario">
+                                {{ form.maneja_inventario(class="form-check-input", id="chk-inventario") }}
+                                <label class="form-check-label">{{ form.maneja_inventario.label.text }}</label>
+                            </div>
+                            <div id="div-inventario-detalles" style="{{ '' if form.maneja_inventario.data else 'display:none;' }}">
+                                <div class="row mt-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label small">{{ form.unidad_medida.label.text }}</label>
+                                        {{ form.unidad_medida(class="form-select form-select-sm") }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small">{{ form.stock_minimo.label.text }}</label>
+                                        {{ form.stock_minimo(class="form-control form-control-sm", step="any") }}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -72,8 +82,17 @@
 
 {% block extra_js %}
 <script>
-document.getElementById('chk-inv-directo').addEventListener('change', function() {
-    document.getElementById('div-insumo-directo').style.display = this.checked ? 'block' : 'none';
+document.getElementById('chk-inventario').addEventListener('change', function() {
+    document.getElementById('div-inventario-detalles').style.display = this.checked ? 'block' : 'none';
+});
+// Si es servicio, ocultar inventario
+document.getElementById('sel-tipo').addEventListener('change', function() {
+    const esServicio = this.value === 'servicio';
+    document.getElementById('div-inventario').style.display = esServicio ? 'none' : 'block';
+    if (esServicio) {
+        document.getElementById('chk-inventario').checked = false;
+        document.getElementById('div-inventario-detalles').style.display = 'none';
+    }
 });
 </script>
 {% endblock %}

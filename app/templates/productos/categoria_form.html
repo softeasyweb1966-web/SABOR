@@ -24,9 +24,21 @@
                         {{ form.descripcion(class="form-control") }}
                     </div>
 
-                    <div class="mb-3 form-check">
-                        {{ form.activa(class="form-check-input") }}
-                        <label class="form-check-label">{{ form.activa.label.text }}</label>
+                    <div class="card bg-light mb-3">
+                        <div class="card-body py-2">
+                            <div class="form-check mb-1">
+                                {{ form.visible_ventas(class="form-check-input") }}
+                                <label class="form-check-label">{{ form.visible_ventas.label.text }}</label>
+                            </div>
+                            <div class="form-check mb-1">
+                                {{ form.visible_compras(class="form-check-input") }}
+                                <label class="form-check-label">{{ form.visible_compras.label.text }}</label>
+                            </div>
+                            <div class="form-check">
+                                {{ form.activa(class="form-check-input") }}
+                                <label class="form-check-label">{{ form.activa.label.text }}</label>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="d-flex gap-2">

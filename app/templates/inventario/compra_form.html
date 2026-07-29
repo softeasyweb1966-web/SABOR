@@ -2,7 +2,7 @@
 {% block title %}Registrar Compra - SABOR{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-md-7">
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-bag-plus"></i> Registrar Compra</h5>
@@ -13,53 +13,58 @@
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">{{ form.categoria_compra_id.label.text }}</label>
-                            {{ form.categoria_compra_id(class="form-select") }}
+                            <label class="form-label">{{ form.categoria_id.label.text }}</label>
+                            {{ form.categoria_id(class="form-select", id="sel-categoria") }}
+                            <div class="form-text">Filtra los productos.</div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">{{ form.insumo_id.label.text }}</label>
-                            {{ form.insumo_id(class="form-select") }}
-                            <div class="form-text">Se sumará la cantidad al stock de este insumo.</div>
+                            <label class="form-label">{{ form.producto_id.label.text }}</label>
+                            {{ form.producto_id(class="form-select", id="sel-producto") }}
                         </div>
                     </div>
 
                     <div class="row">
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label class="form-label">{{ form.cantidad.label.text }}</label>
-                            {{ form.cantidad(class="form-control") }}
+                            {{ form.cantidad(class="form-control", step="any", id="inp-cantidad") }}
                             {% for error in form.cantidad.errors %}
                             <div class="text-danger small">{{ error }}</div>
                             {% endfor %}
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label class="form-label">{{ form.costo_total.label.text }}</label>
-                            {{ form.costo_total(class="form-control") }}
+                            {{ form.costo_total(class="form-control", id="inp-costo") }}
                             {% for error in form.costo_total.errors %}
                             <div class="text-danger small">{{ error }}</div>
                             {% endfor %}
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Valor unitario</label>
+                            <input type="text" class="form-control bg-light" id="lbl-unitario" readonly placeholder="$0">
+                        </div>
+                        <div class="col-md-3 mb-3">
                             <label class="form-label">{{ form.fecha.label.text }}</label>
                             {{ form.fecha(class="form-control", type="date") }}
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">{{ form.proveedor.label.text }}</label>
-                        {{ form.proveedor(class="form-control", placeholder="Nombre del proveedor") }}
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">{{ form.observacion.label.text }}</label>
-                        {{ form.observacion(class="form-control", placeholder="Nota adicional") }}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form.proveedor.label.text }}</label>
+                            {{ form.proveedor(class="form-control", placeholder="Nombre del proveedor") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form.observacion.label.text }}</label>
+                            {{ form.observacion(class="form-control", placeholder="Nota adicional") }}
+                        </div>
                     </div>
 
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-success">
-                            <i class="bi bi-check-circle"></i> Registrar Compra
+                            <i class="bi bi-check-circle"></i> Registrar y seguir comprando
                         </button>
                         <a href="{{ url_for('inventario.compras') }}" class="btn btn-secondary">
-                            <i class="bi bi-arrow-left"></i> Volver
+                            <i class="bi bi-arrow-left"></i> Ir a lista de compras
                         </a>
                     </div>
                 </form>
@@ -67,4 +72,40 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filtrarProductos() {
+    const catId = document.getElementById('sel-categoria').value;
+    const selProducto = document.getElementById('sel-producto');
+
+    fetch(`/inventario/api/productos-por-categoria/${catId}`)
+        .then(r => r.json())
+        .then(productos => {
+            selProducto.innerHTML = '';
+            if (productos.length === 0) {
+                selProducto.innerHTML = '<option value="">-- No hay productos en esta categoría --</option>';
+            } else {
+                productos.forEach(p => {
+                    selProducto.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+                });
+            }
+        });
+}
+
+function calcularUnitario() {
+    const cantidad = parseFloat(document.getElementById('inp-cantidad').value) || 0;
+    const costo = parseFloat(document.getElementById('inp-costo').value) || 0;
+    const unitario = cantidad > 0 ? (costo / cantidad) : 0;
+    document.getElementById('lbl-unitario').value = '$' + unitario.toLocaleString('es-CO', {maximumFractionDigits: 0});
+}
+
+document.getElementById('sel-categoria').addEventListener('change', filtrarProductos);
+document.getElementById('inp-cantidad').addEventListener('input', calcularUnitario);
+document.getElementById('inp-costo').addEventListener('input', calcularUnitario);
+
+// Al cargar
+filtrarProductos();
+</script>
 {% endblock %}

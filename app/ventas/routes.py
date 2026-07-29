@@ -5,7 +5,7 @@ from app.ventas import bp
 from app.ventas.forms import VentaDetalleForm, DescuentoAlmuerzosForm, CierreCajaForm, AbrirDiaForm
 from app.models import (VentaDiaria, VentaDetalle, Producto, Categoria,
                         FormaPago, Persona, Credito, PagoElectronico, PagoCredito,
-                        Insumo, Compra)
+                        Compra)
 from datetime import date
 from decimal import Decimal
 
@@ -42,7 +42,7 @@ def index():
         return render_template('ventas/abrir_dia.html', form=form)
 
     # Cargar datos para el registro
-    categorias = Categoria.query.filter_by(activa=True).order_by(Categoria.nombre).all()
+    categorias = Categoria.query.filter_by(activa=True, visible_ventas=True).order_by(Categoria.nombre).all()
     personas = Persona.query.filter_by(activa=True).order_by(Persona.nombre).all()
 
     # Productos agrupados por categoría
@@ -415,46 +415,50 @@ def cerrar_caja():
             venta_dia.estado = 'cerrado_caja'
             venta_dia.cerrada = True
 
-            # Calcular descuentos por insumo antes de aplicarlos
-            from app.models import MovimientoInventario
-            descuentos_por_insumo = {}
+            # Calcular descuentos por producto antes de aplicarlos
+            from app.models import MovimientoInventario, Receta
+            descuentos_por_producto = {}
             for d in detalles:
                 producto = d.producto
-                if producto.controla_inventario_directo and producto.insumo_directo_id:
-                    iid = producto.insumo_directo_id
-                    descuentos_por_insumo[iid] = descuentos_por_insumo.get(iid, Decimal('0')) + d.cantidad
-                for pi in producto.descuentos_inventario:
-                    iid = pi.insumo_id
-                    descuentos_por_insumo[iid] = descuentos_por_insumo.get(iid, Decimal('0')) + (pi.cantidad * d.cantidad)
+                # Si el producto maneja inventario directo, descontarse a sí mismo
+                if producto.maneja_inventario:
+                    descuentos_por_producto[producto.id] = descuentos_por_producto.get(producto.id, Decimal('0')) + d.cantidad
+                # Receta: descontar los ingredientes
+                for r in producto.receta:
+                    if r.insumo.maneja_inventario:
+                        descuentos_por_producto[r.insumo_id] = descuentos_por_producto.get(r.insumo_id, Decimal('0')) + (r.cantidad * d.cantidad)
 
-            # Compras del día por insumo
+            # Compras del día por producto
             compras_dia_list = Compra.query.filter_by(fecha=venta_dia.fecha).all()
-            compras_por_insumo = {}
+            compras_por_producto = {}
             for c in compras_dia_list:
-                compras_por_insumo[c.insumo_id] = compras_por_insumo.get(c.insumo_id, Decimal('0')) + c.cantidad
+                if c.producto and c.producto.maneja_inventario:
+                    compras_por_producto[c.producto_id] = compras_por_producto.get(c.producto_id, Decimal('0')) + c.cantidad
 
             # Registrar movimientos y descontar inventario
-            todos_insumos_ids = set(list(descuentos_por_insumo.keys()) + list(compras_por_insumo.keys()))
-            for insumo_id in todos_insumos_ids:
-                insumo = Insumo.query.get(insumo_id)
-                if not insumo:
+            todos_ids = set(list(descuentos_por_producto.keys()) + list(compras_por_producto.keys()))
+            for prod_id in todos_ids:
+                prod = Producto.query.get(prod_id)
+                if not prod or not prod.maneja_inventario:
                     continue
 
-                ventas_cant = descuentos_por_insumo.get(insumo_id, Decimal('0'))
-                compras_cant = compras_por_insumo.get(insumo_id, Decimal('0'))
+                ventas_cant = descuentos_por_producto.get(prod_id, Decimal('0'))
+                compras_cant = compras_por_producto.get(prod_id, Decimal('0'))
 
-                # Saldo inicio = stock actual antes de descontar (compras ya sumaron al registrarlas)
-                saldo_inicio = insumo.stock_actual
-                saldo_final = saldo_inicio - ventas_cant
+                # stock_actual ya incluye las compras del día (se sumaron al registrarlas)
+                # Saldo inicio = stock_actual - compras_dia (antes de comprar)
+                saldo_inicio = prod.stock_actual - compras_cant
+                subtotal = saldo_inicio + compras_cant  # = prod.stock_actual
+                saldo_final = subtotal - ventas_cant
 
                 # Registrar foto del movimiento
                 mov_existente = MovimientoInventario.query.filter_by(
-                    fecha=venta_dia.fecha, insumo_id=insumo_id
+                    fecha=venta_dia.fecha, producto_id=prod_id
                 ).first()
                 if not mov_existente:
                     mov = MovimientoInventario(
                         fecha=venta_dia.fecha,
-                        insumo_id=insumo_id,
+                        producto_id=prod_id,
                         saldo_inicio=saldo_inicio,
                         compras=compras_cant,
                         ventas=ventas_cant,
@@ -462,8 +466,7 @@ def cerrar_caja():
                     )
                     db.session.add(mov)
 
-                # Descontar del stock
-                insumo.stock_actual = saldo_final
+                prod.stock_actual = saldo_final
 
             db.session.commit()
             flash(f'Caja cerrada. Total: ${total_neto:,.0f} | Efectivo: ${total_efectivo_ventas:,.0f}', 'success')
@@ -475,6 +478,10 @@ def cerrar_caja():
         if p.plataforma in resumen_pagos:
             resumen_pagos[p.plataforma].append(p)
 
+    # Pagos de créditos recibidos hoy
+    pagos_creditos_hoy = PagoCredito.query.filter_by(fecha=venta_dia.fecha).all()
+    total_pagos_creditos_hoy = sum(p.monto for p in pagos_creditos_hoy)
+
     return render_template('ventas/cerrar_caja.html',
                            venta_dia=venta_dia,
                            total_ventas=total_ventas,
@@ -485,7 +492,9 @@ def cerrar_caja():
                            total_pagos_elec=total_pagos_elec,
                            creditos_dia=creditos_dia,
                            total_creditos=total_creditos,
-                           personas=personas)
+                           personas=personas,
+                           pagos_creditos_hoy=pagos_creditos_hoy,
+                           total_pagos_creditos_hoy=total_pagos_creditos_hoy)
 
 
 @bp.route('/cierre/<int:id>')
@@ -571,10 +580,13 @@ def reabrir(id):
     detalles = VentaDetalle.query.filter_by(venta_diaria_id=venta_dia.id).all()
     for d in detalles:
         producto = d.producto
-        if producto.controla_inventario_directo and producto.insumo_directo:
-            producto.insumo_directo.stock_actual += d.cantidad
-        for pi in producto.descuentos_inventario:
-            pi.insumo.stock_actual += pi.cantidad * d.cantidad
+        # Si el producto maneja inventario directo
+        if producto.maneja_inventario:
+            producto.stock_actual += d.cantidad
+        # Revertir receta
+        for r in producto.receta:
+            if r.insumo.maneja_inventario:
+                r.insumo.stock_actual += r.cantidad * d.cantidad
 
     venta_dia.estado = 'abierto'
     venta_dia.cerrada = False
