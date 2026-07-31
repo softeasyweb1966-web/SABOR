@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Ajuste de Inventario - SABOR{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3><i class="bi bi-pencil-square"></i> Ajuste de Inventario</h3>
+    <a href="{{ url_for('inventario.listar') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Inventario
+    </a>
+</div>
+
+<div class="alert alert-info py-2">
+    <i class="bi bi-info-circle"></i> Ingrese la cantidad real de cada producto. Solo se actualizarán los que tengan un valor diferente al stock actual.
+</div>
+
+<form method="POST" action="{{ url_for('inventario.guardar_ajuste') }}" onsubmit="return confirm('¿Guardar ajuste de inventario? Los stocks se actualizarán.');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Producto</th>
+                            <th>Unidad</th>
+                            <th class="text-end">Stock Sistema</th>
+                            <th class="text-center">Cantidad Real</th>
+                            <th class="text-center">Valor ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in productos %}
+                        <tr>
+                            <td class="fw-semibold">{{ p.nombre }}</td>
+                            <td>{{ p.unidad_medida }}</td>
+                            <td class="text-end">{{ "%.0f"|format(p.stock_actual) }}</td>
+                            <td class="text-center" style="width:120px;">
+                                <input type="number" name="cantidad_{{ p.id }}" class="form-control form-control-sm text-center" step="any" value="{{ '%.0f'|format(p.stock_actual) }}" onclick="this.select();">
+                            </td>
+                            <td class="text-center" style="width:120px;">
+                                <input type="number" name="valor_{{ p.id }}" class="form-control form-control-sm text-center" step="1" value="0" placeholder="$0">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="bi bi-check-circle"></i> Guardar Ajuste
+        </button>
+    </div>
+</form>
+{% endblock %}

@@ -110,6 +110,7 @@ class Compra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     producto_id = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
     categoria_id = db.Column(db.Integer, db.ForeignKey('categorias.id'), nullable=True)
+    comprobante_id = db.Column(db.Integer, db.ForeignKey('comprobantes_compra.id'), nullable=True)
     cantidad = db.Column(db.Numeric(12, 3), nullable=False)
     costo_total = db.Column(db.Numeric(12, 2), nullable=False)
     fecha = db.Column(db.Date, default=date.today)
@@ -118,7 +119,72 @@ class Compra(db.Model):
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
     producto = db.relationship('Producto', backref='compras')
     categoria = db.relationship('Categoria', backref='compras')
+    comprobante = db.relationship('ComprobanteCompra', backref='items')
     usuario = db.relationship('Usuario', backref='compras_registradas')
+
+
+class ComprobanteCompra(db.Model):
+    """Encabezado de comprobante de compra (agrupa varios items)."""
+    __tablename__ = 'comprobantes_compra'
+    id = db.Column(db.Integer, primary_key=True)
+    fecha = db.Column(db.Date, default=date.today, nullable=False)
+    proveedor = db.Column(db.String(150))
+    forma_pago = db.Column(db.String(20), default='Caja General')  # Caja Menor, Caja General
+    total = db.Column(db.Numeric(12, 2), default=0)
+    observacion = db.Column(db.String(200))
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
+    usuario = db.relationship('Usuario', backref='comprobantes_compra')
+
+    def __repr__(self):
+        return f'<ComprobanteCompra {self.id} {self.fecha}>'
+
+
+# ============================================================
+# CAJA MENOR
+# ============================================================
+
+class CajaMenor(db.Model):
+    """Configuración y saldo de la caja menor."""
+    __tablename__ = 'caja_menor'
+    id = db.Column(db.Integer, primary_key=True)
+    saldo_actual = db.Column(db.Numeric(12, 2), default=0)
+    tope = db.Column(db.Numeric(12, 2), default=0)
+    movimientos = db.relationship('MovimientoCajaMenor', backref='caja_menor', lazy=True)
+
+    def __repr__(self):
+        return f'<CajaMenor saldo={self.saldo_actual}>'
+
+
+class MovimientoCajaMenor(db.Model):
+    """Movimientos de caja menor (abastecimiento y compras)."""
+    __tablename__ = 'movimientos_caja_menor'
+    id = db.Column(db.Integer, primary_key=True)
+    caja_menor_id = db.Column(db.Integer, db.ForeignKey('caja_menor.id'), nullable=False)
+    fecha = db.Column(db.Date, default=date.today)
+    tipo = db.Column(db.String(20), nullable=False)  # abastecimiento, compra
+    monto = db.Column(db.Numeric(12, 2), nullable=False)
+    descripcion = db.Column(db.String(200))
+    comprobante_id = db.Column(db.Integer, db.ForeignKey('comprobantes_compra.id'), nullable=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
+    comprobante = db.relationship('ComprobanteCompra', backref='movimiento_caja_menor')
+    usuario = db.relationship('Usuario', backref='movimientos_caja_menor')
+
+
+class AjusteInventario(db.Model):
+    """Ajustes de inventario: carga inicial, conteo físico, merma/desperdicio."""
+    __tablename__ = 'ajustes_inventario'
+    id = db.Column(db.Integer, primary_key=True)
+    fecha = db.Column(db.Date, default=date.today, nullable=False)
+    producto_id = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
+    tipo = db.Column(db.String(30), nullable=False)  # carga_inicial, ajuste_conteo, merma
+    cantidad_anterior = db.Column(db.Numeric(12, 3), nullable=False)
+    cantidad_nueva = db.Column(db.Numeric(12, 3), nullable=False)
+    diferencia = db.Column(db.Numeric(12, 3), nullable=False)
+    valor = db.Column(db.Numeric(12, 2), default=0)  # valor de la cantidad ajustada
+    motivo = db.Column(db.String(200))
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
+    producto = db.relationship('Producto', backref='ajustes')
+    usuario = db.relationship('Usuario', backref='ajustes_inventario')
 
 
 # ============================================================
@@ -170,6 +236,7 @@ class VentaDiaria(db.Model):
     total_transferencia = db.Column(db.Numeric(12, 2), default=0)
     total_credito = db.Column(db.Numeric(12, 2), default=0)
     descuento_almuerzos = db.Column(db.Numeric(12, 2), default=0)
+    justificacion_descuento = db.Column(db.String(200))
     estado = db.Column(db.String(30), default='abierto')
     cerrada = db.Column(db.Boolean, default=False)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'))

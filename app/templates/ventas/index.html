@@ -140,10 +140,16 @@
                         <td class="small">{{ pago.credito.persona.nombre }}</td>
                         <td class="small">{{ pago.observacion.split('|')[1] if pago.observacion and '|' in pago.observacion else 'Efectivo' }}</td>
                         <td class="text-end small fw-semibold">${{ "{:,.0f}".format(pago.monto) }}</td>
+                        <td style="width:25px;">
+                            <form action="{{ url_for('ventas.anular_pago_credito', pago_id=pago.id) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Anular este pago? Se devolverá el saldo al crédito.');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-x-circle"></i></button>
+                            </form>
+                        </td>
                     </tr>
                     {% endfor %}
                     <tr class="table-success">
-                        <td colspan="2" class="small fw-bold">Total recibido:</td>
+                        <td colspan="3" class="small fw-bold">Total recibido:</td>
                         <td class="text-end small fw-bold">${{ "{:,.0f}".format(total_pagos_creditos_hoy) }}</td>
                     </tr>
                 </table>
@@ -157,10 +163,13 @@
                 <h6 class="mb-0"><i class="bi bi-percent"></i> Descuento Almuerzos</h6>
             </div>
             <div class="card-body py-2">
-                <form method="POST" action="{{ url_for('ventas.aplicar_descuento') }}" class="d-flex gap-2">
+                <form method="POST" action="{{ url_for('ventas.aplicar_descuento') }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="number" name="descuento" value="{{ descuento_almuerzos }}" min="0" step="100" class="form-control form-control-sm" placeholder="$0">
-                    <button type="submit" class="btn btn-sm btn-warning">Aplicar</button>
+                    <div class="d-flex gap-2 mb-2">
+                        <input type="number" name="descuento" value="{{ descuento_almuerzos }}" min="0" step="100" class="form-control form-control-sm" placeholder="$0" style="width:120px;">
+                        <input type="text" name="justificacion" value="{{ venta_dia.justificacion_descuento or '' }}" class="form-control form-control-sm" placeholder="Justificación del descuento" required>
+                        <button type="submit" class="btn btn-sm btn-warning">Aplicar</button>
+                    </div>
                 </form>
             </div>
         </div>

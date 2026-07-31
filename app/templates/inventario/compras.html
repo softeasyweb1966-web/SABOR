@@ -2,27 +2,14 @@
 {% block title %}Compras - SABOR{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3><i class="bi bi-bag-plus"></i> Registro de Compras</h3>
+    <h3><i class="bi bi-bag-plus"></i> Comprobantes de Compra</h3>
     <div>
-        <a href="{{ url_for('productos.categorias') }}" class="btn btn-outline-secondary me-2">
-            <i class="bi bi-tags"></i> Categorías
+        <a href="{{ url_for('inventario.caja_menor') }}" class="btn btn-outline-warning me-2">
+            <i class="bi bi-wallet2"></i> Caja Menor
         </a>
-        <a href="{{ url_for('inventario.registrar_compra') }}" class="btn btn-primary">
+        <a href="{{ url_for('inventario.nuevo_comprobante') }}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> Nueva Compra
         </a>
-    </div>
-</div>
-
-<!-- Filtro por categoría -->
-<div class="card mb-3">
-    <div class="card-body py-2">
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-            <span class="text-muted small">Filtrar:</span>
-            <a href="{{ url_for('inventario.compras') }}" class="btn btn-sm {{ 'btn-primary' if not cat_sel else 'btn-outline-primary' }}">Todas</a>
-            {% for cat in categorias %}
-            <a href="{{ url_for('inventario.compras', categoria=cat.id) }}" class="btn btn-sm {{ 'btn-primary' if cat_sel == cat.id else 'btn-outline-primary' }}">{{ cat.nombre }}</a>
-            {% endfor %}
-        </div>
     </div>
 </div>
 
@@ -32,41 +19,39 @@
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
+                        <th>#</th>
                         <th>Fecha</th>
-                        <th>Categoría</th>
-                        <th>Producto</th>
-                        <th class="text-end">Cantidad</th>
-                        <th>Unidad</th>
-                        <th class="text-end">Costo</th>
                         <th>Proveedor</th>
+                        <th>Forma Pago</th>
+                        <th class="text-end">Total</th>
                         <th>Obs.</th>
                         <th class="text-center">Acción</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for compra in compras %}
+                    {% for comp in comprobantes %}
+                    {% if comp.total > 0 %}
                     <tr>
-                        <td>{{ compra.fecha.strftime('%d/%m/%Y') }}</td>
-                        <td><span class="badge bg-info">{{ compra.categoria.nombre if compra.categoria else '-' }}</span></td>
-                        <td class="fw-semibold">{{ compra.producto.nombre if compra.producto else '-' }}</td>
-                        <td class="text-end">{{ "%.0f"|format(compra.cantidad) }}</td>
-                        <td>{{ compra.producto.unidad_medida if compra.producto else '-' }}</td>
-                        <td class="text-end">${{ "{:,.0f}".format(compra.costo_total) }}</td>
-                        <td>{{ compra.proveedor or '-' }}</td>
-                        <td class="small">{{ compra.observacion or '-' }}</td>
+                        <td>{{ comp.id }}</td>
+                        <td>{{ comp.fecha.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ comp.proveedor or '-' }}</td>
+                        <td>
+                            {% if comp.forma_pago == 'Caja Menor' %}
+                            <span class="badge bg-warning text-dark">Caja Menor</span>
+                            {% else %}
+                            <span class="badge bg-primary">Caja General</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-semibold">${{ "{:,.0f}".format(comp.total) }}</td>
+                        <td class="small">{{ comp.observacion or '-' }}</td>
                         <td class="text-center">
-                            <form action="{{ url_for('inventario.eliminar_compra', id=compra.id) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Eliminar? Se revertirá el stock.');">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                            </form>
+                            <a href="{{ url_for('inventario.ver_comprobante', id=comp.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i>
+                            </a>
                         </td>
                     </tr>
-                    {% endfor %}
-                    {% if not compras %}
-                    <tr>
-                        <td colspan="9" class="text-center text-muted py-4">No hay compras registradas.</td>
-                    </tr>
                     {% endif %}
+                    {% endfor %}
                 </tbody>
             </table>
         </div>

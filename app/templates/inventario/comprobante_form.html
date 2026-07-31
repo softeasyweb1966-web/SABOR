@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Registrar Compra - SABOR{% endblock %}
+{% block content %}
+<div class="mb-3">
+    <h3><i class="bi bi-bag-plus"></i> Comprobante de Compra #{{ comprobante.id }}</h3>
+</div>
+
+<div class="row">
+    <!-- Panel izquierdo: Agregar items -->
+    <div class="col-md-5">
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white py-2">
+                <h6 class="mb-0"><i class="bi bi-plus-circle"></i> Agregar Producto</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('inventario.agregar_item_compra', comprobante_id=comprobante.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-2">
+                        <label class="form-label small">Categoría</label>
+                        {{ form_item.categoria_id(class="form-select form-select-sm", id="sel-categoria") }}
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small">Producto</label>
+                        {{ form_item.producto_id(class="form-select form-select-sm", id="sel-producto") }}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6 mb-2">
+                            <label class="form-label small">Cantidad</label>
+                            <input type="number" name="cantidad" class="form-control form-control-sm" step="any" min="0.001" required id="inp-cant">
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label class="form-label small">Costo total ($)</label>
+                            <input type="number" name="costo_total" class="form-control form-control-sm" step="1" min="1" required id="inp-costo">
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <small class="text-muted">Valor unitario: <strong id="lbl-unitario">$0</strong></small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-plus"></i> Agregar al comprobante
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Finalizar comprobante -->
+        <div class="card">
+            <div class="card-header bg-success text-white py-2">
+                <h6 class="mb-0"><i class="bi bi-check-circle"></i> Finalizar Comprobante</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('inventario.finalizar_comprobante', comprobante_id=comprobante.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-2">
+                        <label class="form-label small">Proveedor</label>
+                        <input type="text" name="proveedor" class="form-control form-control-sm" placeholder="Nombre del proveedor">
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small">Forma de pago</label>
+                        <select name="forma_pago" class="form-select form-select-sm">
+                            <option value="Caja General">Caja General</option>
+                            <option value="Caja Menor">Caja Menor</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small">Observación</label>
+                        <input type="text" name="observacion" class="form-control form-control-sm" placeholder="Nota opcional">
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100" onclick="return confirm('¿Finalizar comprobante por ${{ '{:,.0f}'.format(total_items) }}?');">
+                        <i class="bi bi-check-circle"></i> Finalizar (${{ "{:,.0f}".format(total_items) }})
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel derecho: Items del comprobante -->
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header py-2 d-flex justify-content-between">
+                <h6 class="mb-0">Items del comprobante</h6>
+                <strong>${{ "{:,.0f}".format(total_items) }}</strong>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Producto</th>
+                            <th class="text-end">Cant.</th>
+                            <th class="text-end">Costo</th>
+                            <th class="text-end">Unitario</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td>{{ item.producto.nombre }}</td>
+                            <td class="text-end">{{ "%.0f"|format(item.cantidad) }}</td>
+                            <td class="text-end">${{ "{:,.0f}".format(item.costo_total) }}</td>
+                            <td class="text-end text-muted">${{ "{:,.0f}".format(item.costo_total / item.cantidad) if item.cantidad > 0 else '0' }}</td>
+                            <td>
+                                <form action="{{ url_for('inventario.eliminar_item_compra', compra_id=item.id) }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-x"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not items %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">Sin items. Agrega productos a la izquierda.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filtrarProductos() {
+    const catId = document.getElementById('sel-categoria').value;
+    const selProducto = document.getElementById('sel-producto');
+    fetch(`/inventario/api/productos-por-categoria/${catId}`)
+        .then(r => r.json())
+        .then(productos => {
+            selProducto.innerHTML = '';
+            if (productos.length === 0) {
+                selProducto.innerHTML = '<option value="">-- No hay productos --</option>';
+            } else {
+                productos.forEach(p => {
+                    selProducto.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+                });
+            }
+        });
+}
+
+function calcularUnitario() {
+    const cant = parseFloat(document.getElementById('inp-cant').value) || 0;
+    const costo = parseFloat(document.getElementById('inp-costo').value) || 0;
+    const unitario = cant > 0 ? (costo / cant) : 0;
+    document.getElementById('lbl-unitario').textContent = '$' + unitario.toLocaleString('es-CO', {maximumFractionDigits: 0});
+}
+
+document.getElementById('sel-categoria').addEventListener('change', filtrarProductos);
+document.getElementById('inp-cant').addEventListener('input', calcularUnitario);
+document.getElementById('inp-costo').addEventListener('input', calcularUnitario);
+filtrarProductos();
+</script>
+{% endblock %}

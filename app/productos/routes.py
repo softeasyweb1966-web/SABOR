@@ -4,6 +4,7 @@ from app import db
 from app.productos import bp
 from app.productos.forms import CategoriaForm, ProductoForm, RecetaForm
 from app.models import Categoria, Producto, Receta
+from app.decorators import rol_requerido
 
 
 # ============================================================
@@ -84,6 +85,7 @@ def listar():
 
 @bp.route('/crear', methods=['GET', 'POST'])
 @login_required
+@rol_requerido('Administrador', 'Compras')
 def crear():
     form = ProductoForm()
     form.categoria_id.choices = [(c.id, c.nombre) for c in Categoria.query.filter_by(activa=True).order_by(Categoria.nombre).all()]

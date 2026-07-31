@@ -6,6 +6,7 @@ from app.ventas.forms import VentaDetalleForm, DescuentoAlmuerzosForm, CierreCaj
 from app.models import (VentaDiaria, VentaDetalle, Producto, Categoria,
                         FormaPago, Persona, Credito, PagoElectronico, PagoCredito,
                         Compra)
+from app.decorators import rol_requerido
 from datetime import date
 from decimal import Decimal
 
@@ -30,6 +31,7 @@ def obtener_venta_abierta():
 
 @bp.route('/')
 @login_required
+@rol_requerido('Administrador', 'Caja')
 def index():
     venta_dia = obtener_venta_abierta()
 
@@ -215,6 +217,7 @@ def agregar_cortesia():
 
 @bp.route('/descuento', methods=['POST'])
 @login_required
+@rol_requerido('Administrador', 'Caja')
 def aplicar_descuento():
     """Aplicar descuento al total de almuerzos."""
     venta_dia = obtener_venta_abierta()
@@ -223,9 +226,16 @@ def aplicar_descuento():
         return redirect(url_for('ventas.index'))
 
     descuento = request.form.get('descuento', 0, type=float)
+    justificacion = request.form.get('justificacion', '').strip()
+
+    if descuento > 0 and not justificacion:
+        flash('Debe justificar el descuento.', 'danger')
+        return redirect(url_for('ventas.index'))
+
     venta_dia.descuento_almuerzos = Decimal(str(descuento))
+    venta_dia.justificacion_descuento = justificacion
     db.session.commit()
-    flash(f'Descuento de ${descuento:,.0f} aplicado a almuerzos.', 'success')
+    flash(f'Descuento de ${descuento:,.0f} aplicado.', 'success')
     return redirect(url_for('ventas.index'))
 
 
@@ -293,6 +303,34 @@ def eliminar_detalle(id):
     db.session.commit()
     flash('Item eliminado.', 'success')
     return redirect(url_for('ventas.index', cat=cat_id))
+
+
+@bp.route('/anular-pago-credito/<int:pago_id>', methods=['POST'])
+@login_required
+@rol_requerido('Administrador', 'Caja')
+def anular_pago_credito(pago_id):
+    """Anular un pago de crédito recibido hoy (devuelve saldo al crédito)."""
+    pago = PagoCredito.query.get_or_404(pago_id)
+    credito = pago.credito
+
+    # Verificar que el día esté abierto
+    venta_dia = obtener_venta_abierta()
+    if not venta_dia or venta_dia.estado != 'abierto':
+        flash('No se puede anular: el día no está abierto.', 'danger')
+        return redirect(url_for('ventas.index'))
+
+    # Devolver saldo al crédito
+    credito.saldo_pendiente += pago.monto
+    if credito.saldo_pendiente > 0:
+        credito.estado = 'abonado' if credito.saldo_pendiente < credito.monto_total else 'pendiente'
+
+    nombre = credito.persona.nombre
+    monto = pago.monto
+
+    db.session.delete(pago)
+    db.session.commit()
+    flash(f'Pago de ${monto:,.0f} de {nombre} anulado. Saldo devuelto al crédito.', 'success')
+    return redirect(url_for('ventas.index'))
 
 
 @bp.route('/cerrar-caja', methods=['GET', 'POST'])

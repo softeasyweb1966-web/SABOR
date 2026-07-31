@@ -4,11 +4,13 @@ from app import db
 from app.gastos import bp
 from app.gastos.forms import TipoGastoForm, GastoForm
 from app.models import TipoGasto, Gasto
+from app.decorators import rol_requerido
 from datetime import date
 
 
 @bp.route('/')
 @login_required
+@rol_requerido('Administrador', 'Compras')
 def index():
     mes = request.args.get('mes', date.today().month, type=int)
     anio = request.args.get('anio', date.today().year, type=int)
@@ -71,6 +73,7 @@ def eliminar_tipo(id):
 
 @bp.route('/registrar', methods=['GET', 'POST'])
 @login_required
+@rol_requerido('Administrador', 'Compras')
 def registrar():
     form = GastoForm()
     form.tipo_gasto_id.choices = [(t.id, t.nombre) for t in TipoGasto.query.filter_by(activo=True).order_by(TipoGasto.nombre).all()]

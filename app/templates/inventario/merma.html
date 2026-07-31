@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Merma / Desperdicio - SABOR{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3><i class="bi bi-trash3"></i> Merma / Desperdicio</h3>
+    <a href="{{ url_for('inventario.listar') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Inventario
+    </a>
+</div>
+
+<div class="row">
+    <!-- Formulario -->
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header bg-danger text-white py-2">
+                <h6 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Registrar Merma</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('inventario.registrar_merma') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-3">
+                        <label class="form-label">Producto</label>
+                        <select name="producto_id" class="form-select" required>
+                            <option value="">-- Seleccionar --</option>
+                            {% for p in productos %}
+                            <option value="{{ p.id }}">{{ p.nombre }} (Stock: {{ "%.0f"|format(p.stock_actual) }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Cantidad perdida</label>
+                        <input type="number" name="cantidad" class="form-control" step="any" min="0.001" required placeholder="Cantidad que se pierde">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Motivo (obligatorio)</label>
+                        <input type="text" name="motivo" class="form-control" required placeholder="Ej: Se dañó por refrigeración, Venció, Se cayó...">
+                    </div>
+
+                    <button type="submit" class="btn btn-danger w-100">
+                        <i class="bi bi-trash3"></i> Registrar Merma
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historial -->
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header py-2">
+                <h6 class="mb-0">Últimas mermas registradas</h6>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Producto</th>
+                            <th class="text-end">Cantidad</th>
+                            <th>Motivo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in ultimas_mermas %}
+                        <tr>
+                            <td>{{ m.fecha.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ m.producto.nombre }}</td>
+                            <td class="text-end text-danger fw-semibold">-{{ "%.0f"|format(m.diferencia|abs) }}</td>
+                            <td class="small">{{ m.motivo }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% if not ultimas_mermas %}
+                        <tr><td colspan="4" class="text-center text-muted py-3">Sin mermas registradas.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

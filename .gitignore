@@ -5,3 +5,11 @@ __pycache__/
 instance/
 migrations/
 *.db
+
+*.csv
+*.json
+*.dump
+*.sql
+*.backup
+Nuevo Documento de texto.txt
+postgress.txt

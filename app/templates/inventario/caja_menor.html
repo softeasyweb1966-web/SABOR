@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Caja Menor - SABOR{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="bi bi-wallet2"></i> Caja Menor</h3>
+    <a href="{{ url_for('inventario.compras') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Compras
+    </a>
+</div>
+
+<!-- Saldo y tope -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card bg-success text-white text-center">
+            <div class="card-body py-3">
+                <small>Saldo Actual</small>
+                <h3 class="mb-0">${{ "{:,.0f}".format(caja.saldo_actual) if caja else '0' }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-secondary text-white text-center">
+            <div class="card-body py-3">
+                <small>Tope Máximo</small>
+                <h3 class="mb-0">${{ "{:,.0f}".format(caja.tope) if caja else '0' }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white text-center">
+            <div class="card-body py-3">
+                <small>Disponible para abastecer</small>
+                <h3 class="mb-0">${{ "{:,.0f}".format(caja.tope - caja.saldo_actual) if caja else '0' }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Abastecer -->
+    <div class="col-md-5">
+        {% if current_user.rol.nombre == 'Administrador' %}
+        <div class="card mb-3">
+            <div class="card-header bg-success text-white py-2">
+                <h6 class="mb-0"><i class="bi bi-cash"></i> Abastecer Caja Menor</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('inventario.abastecer_caja_menor') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-2">
+                        <label class="form-label small">Fecha</label>
+                        <input type="date" name="fecha" class="form-control form-control-sm" value="{{ today }}" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Monto</label>
+                        <input type="number" name="monto" class="form-control form-control-sm" placeholder="Monto a entregar" min="1" step="1" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Descripción</label>
+                        <input type="text" name="descripcion" class="form-control form-control-sm" placeholder="Descripción (opcional)">
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-plus-circle"></i> Abastecer
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Configurar tope -->
+        <div class="card">
+            <div class="card-header py-2">
+                <h6 class="mb-0"><i class="bi bi-gear"></i> Configurar Tope</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('inventario.configurar_tope_caja_menor') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-2">
+                        <label class="form-label small">Fecha</label>
+                        <input type="date" name="fecha" class="form-control form-control-sm" value="{{ today }}" required>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <input type="number" name="tope" class="form-control form-control-sm" value="{{ '%.0f'|format(caja.tope) if caja else 0 }}" min="1" step="1">
+                        <button type="submit" class="btn btn-sm btn-secondary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Movimientos -->
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header py-2">
+                <h6 class="mb-0">Movimientos</h6>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th>Descripción</th>
+                            <th class="text-end">Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mov in movimientos %}
+                        <tr>
+                            <td>{{ mov.fecha.strftime('%d/%m/%Y') }}</td>
+                            <td>
+                                {% if mov.tipo == 'abastecimiento' %}
+                                <span class="badge bg-success">Abastecimiento</span>
+                                {% else %}
+                                <span class="badge bg-danger">Compra</span>
+                                {% endif %}
+                            </td>
+                            <td class="small">{{ mov.descripcion or '-' }}</td>
+                            <td class="text-end fw-semibold {{ 'text-success' if mov.tipo == 'abastecimiento' else 'text-danger' }}">
+                                {{ '+' if mov.tipo == 'abastecimiento' else '-' }}${{ "{:,.0f}".format(mov.monto) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not movimientos %}
+                        <tr><td colspan="4" class="text-center text-muted py-3">Sin movimientos.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
