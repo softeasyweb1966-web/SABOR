@@ -105,7 +105,7 @@ def crear():
         db.session.add(producto)
         db.session.commit()
         flash('Producto creado exitosamente.', 'success')
-        return redirect(url_for('productos.listar'))
+        return redirect(url_for('productos.listar', categoria=producto.categoria_id))
     return render_template('productos/producto_form.html', form=form, titulo='Crear Producto')
 
 
@@ -128,7 +128,7 @@ def editar(id):
         producto.activo = form.activo.data
         db.session.commit()
         flash('Producto actualizado.', 'success')
-        return redirect(url_for('productos.listar'))
+        return redirect(url_for('productos.listar', categoria=producto.categoria_id))
     return render_template('productos/producto_form.html', form=form, titulo='Editar Producto')
 
 
