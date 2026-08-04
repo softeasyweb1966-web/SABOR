@@ -26,6 +26,26 @@
 
 <!-- Tarjetas de promedio por categoría -->
 <div class="row g-3 mb-4">
+    <!-- Tarjeta resumen total platos -->
+    <div class="col">
+        <div class="card bg-dark text-white text-center h-100">
+            <div class="card-body py-3">
+                <small>Total Platos</small>
+                <h4 class="mb-0">{{ total_platos }}</h4>
+                <small>promedio/día: <strong>{{ promedio_platos }}</strong></small>
+            </div>
+        </div>
+    </div>
+    <!-- Tarjeta valor total -->
+    <div class="col">
+        <div class="card bg-success text-white text-center h-100">
+            <div class="card-body py-3">
+                <small>Valor Total Mes</small>
+                <h4 class="mb-0">${{ "{:,.0f}".format(total_valor_mes) }}</h4>
+                <small>promedio/día: <strong>${{ "{:,.0f}".format(promedio_valor) }}</strong></small>
+            </div>
+        </div>
+    </div>
     {% for cat_nombre, promedio in promedios.items() %}
     {% if totales_cat.get(cat_nombre, 0) > 0 %}
     <div class="col">
@@ -35,7 +55,7 @@
                 <h4 class="mb-0 text-primary">{{ promedio }}</h4>
                 <small class="text-muted">promedio/día</small>
                 <hr class="my-1">
-                <small>Total: <strong>{{ totales_cat[cat_nombre] }}</strong> en {{ dias_cerrados }} días</small>
+                <small>Total: <strong>{{ totales_cat[cat_nombre] }}</strong> | ${{ "{:,.0f}".format(valores_cat.get(cat_nombre, 0)) }}</small>
             </div>
         </div>
     </div>

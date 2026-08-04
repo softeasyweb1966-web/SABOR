@@ -339,6 +339,22 @@ def cantidades_promedio():
                 'borderWidth': 1
             })
 
+    # Total platos (almuerzos + desayunos + parrillas) y valores
+    categorias_platos = ['Almuerzos', 'Desayunos', 'Parrillas']
+    total_platos = sum(totales_cat.get(c, 0) for c in categorias_platos)
+    promedio_platos = round(total_platos / dias_cerrados, 1) if dias_cerrados > 0 else 0
+
+    # Valor total del mes y promedio en valor
+    total_valor_mes = sum(float(v.total_ventas) for v in ventas_mes)
+    promedio_valor = round(total_valor_mes / dias_cerrados, 0) if dias_cerrados > 0 else 0
+
+    # Valores por categoría
+    valores_cat = defaultdict(float)
+    for venta in ventas_mes:
+        detalles = VentaDetalle.query.filter_by(venta_diaria_id=venta.id, es_cortesia=False).all()
+        for d in detalles:
+            valores_cat[d.producto.categoria.nombre] += float(d.subtotal)
+
     return render_template('reportes/cantidades_promedio.html',
                            mes=mes,
                            anio=anio,
@@ -346,4 +362,9 @@ def cantidades_promedio():
                            totales_cat=dict(totales_cat),
                            promedios=promedios,
                            grafica_labels=json.dumps(grafica_labels),
-                           grafica_datasets=json.dumps(grafica_datasets))
+                           grafica_datasets=json.dumps(grafica_datasets),
+                           total_platos=total_platos,
+                           promedio_platos=promedio_platos,
+                           total_valor_mes=total_valor_mes,
+                           promedio_valor=promedio_valor,
+                           valores_cat=dict(valores_cat))
