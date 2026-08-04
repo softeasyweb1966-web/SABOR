@@ -106,3 +106,38 @@ def eliminar(id):
     db.session.commit()
     flash('Crédito eliminado.', 'success')
     return redirect(url_for('creditos.index'))
+
+
+@bp.route('/estado-cuenta')
+@login_required
+def estado_cuenta():
+    """Estado de cuenta de una persona: todos sus créditos y pagos."""
+    persona_id = request.args.get('persona_id', type=int)
+
+    # Lista de personas con créditos
+    personas_con_creditos = db.session.query(Persona).join(Credito).filter(
+        Credito.estado.in_(['pendiente', 'abonado'])
+    ).distinct().order_by(Persona.nombre).all()
+
+    persona = None
+    creditos_persona = []
+    total_deuda = Decimal('0')
+    total_creditos = Decimal('0')
+    total_pagado = Decimal('0')
+
+    if persona_id:
+        persona = Persona.query.get(persona_id)
+        if persona:
+            creditos_persona = Credito.query.filter_by(persona_id=persona_id).order_by(Credito.fecha.desc()).all()
+            total_deuda = sum(c.saldo_pendiente for c in creditos_persona if c.estado in ['pendiente', 'abonado'])
+            total_creditos = sum(c.monto_total for c in creditos_persona)
+            total_pagado = total_creditos - total_deuda
+
+    return render_template('creditos/estado_cuenta.html',
+                           personas=personas_con_creditos,
+                           persona=persona,
+                           persona_id=persona_id,
+                           creditos_persona=creditos_persona,
+                           total_deuda=total_deuda,
+                           total_creditos=total_creditos,
+                           total_pagado=total_pagado)

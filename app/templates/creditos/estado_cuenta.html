@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Estado de Cuenta - SABOR{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3><i class="bi bi-person-lines-fill"></i> Estado de Cuenta</h3>
+    <a href="{{ url_for('creditos.index') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Créditos
+    </a>
+</div>
+
+<!-- Selector de persona -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="GET" class="d-flex align-items-center gap-3">
+            <label class="text-muted small mb-0">Persona:</label>
+            <select name="persona_id" class="form-select form-select-sm" style="width:300px;" onchange="this.form.submit();">
+                <option value="">-- Seleccionar persona --</option>
+                {% for p in personas %}
+                <option value="{{ p.id }}" {{ 'selected' if persona_id == p.id }}>{{ p.nombre }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+</div>
+
+{% if persona %}
+<!-- Resumen -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card bg-danger text-white text-center">
+            <div class="card-body py-3">
+                <small>Deuda Total</small>
+                <h3 class="mb-0">${{ "{:,.0f}".format(total_deuda) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-primary text-white text-center">
+            <div class="card-body py-3">
+                <small>Total Créditos</small>
+                <h3 class="mb-0">${{ "{:,.0f}".format(total_creditos) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white text-center">
+            <div class="card-body py-3">
+                <small>Total Pagado</small>
+                <h3 class="mb-0">${{ "{:,.0f}".format(total_pagado) }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detalle de créditos -->
+<div class="card">
+    <div class="card-header py-2">
+        <h6 class="mb-0">Detalle de créditos de {{ persona.nombre }}</h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Fecha</th>
+                    <th>Concepto</th>
+                    <th class="text-end">Monto</th>
+                    <th class="text-end">Pagado</th>
+                    <th class="text-end">Saldo</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in creditos_persona %}
+                <tr>
+                    <td>{{ c.fecha.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ c.observacion or '-' }}</td>
+                    <td class="text-end">${{ "{:,.0f}".format(c.monto_total) }}</td>
+                    <td class="text-end text-success">${{ "{:,.0f}".format(c.monto_total - c.saldo_pendiente) }}</td>
+                    <td class="text-end fw-semibold {{ 'text-danger' if c.saldo_pendiente > 0 else '' }}">${{ "{:,.0f}".format(c.saldo_pendiente) }}</td>
+                    <td>
+                        {% if c.estado == 'pendiente' %}
+                        <span class="badge bg-warning text-dark">Pendiente</span>
+                        {% elif c.estado == 'abonado' %}
+                        <span class="badge bg-info">Abonado</span>
+                        {% else %}
+                        <span class="badge bg-success">Cancelado</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% if c.pagos %}
+                {% for pago in c.pagos %}
+                <tr class="table-success">
+                    <td class="ps-4 small">{{ pago.fecha.strftime('%d/%m/%Y') }}</td>
+                    <td class="small text-success"><i class="bi bi-check-circle"></i> Abono</td>
+                    <td></td>
+                    <td class="text-end small text-success">${{ "{:,.0f}".format(pago.monto) }}</td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+                {% endfor %}
+            </tbody>
+            <tfoot class="table-dark">
+                <tr>
+                    <td colspan="2" class="fw-bold">TOTAL</td>
+                    <td class="text-end fw-bold">${{ "{:,.0f}".format(total_creditos) }}</td>
+                    <td class="text-end fw-bold">${{ "{:,.0f}".format(total_pagado) }}</td>
+                    <td class="text-end fw-bold">${{ "{:,.0f}".format(total_deuda) }}</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% elif persona_id %}
+<div class="alert alert-info">Esta persona no tiene créditos registrados.</div>
+{% else %}
+<div class="alert alert-info">Seleccione una persona para ver su estado de cuenta.</div>
+{% endif %}
+{% endblock %}
