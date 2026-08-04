@@ -133,6 +133,27 @@ def abrir_dia():
     return redirect(url_for('ventas.index'))
 
 
+@bp.route('/eliminar-dia', methods=['POST'])
+@login_required
+@rol_requerido('Administrador', 'Caja')
+def eliminar_dia():
+    """Eliminar un día abierto sin ventas registradas."""
+    venta_dia = obtener_venta_abierta()
+    if not venta_dia:
+        flash('No hay un día abierto.', 'danger')
+        return redirect(url_for('ventas.index'))
+
+    detalles = VentaDetalle.query.filter_by(venta_diaria_id=venta_dia.id).count()
+    if detalles > 0:
+        flash('No se puede eliminar: el día tiene ventas registradas.', 'danger')
+        return redirect(url_for('ventas.index'))
+
+    db.session.delete(venta_dia)
+    db.session.commit()
+    flash('Día eliminado.', 'success')
+    return redirect(url_for('ventas.index'))
+
+
 @bp.route('/agregar', methods=['POST'])
 @login_required
 def agregar_venta():
