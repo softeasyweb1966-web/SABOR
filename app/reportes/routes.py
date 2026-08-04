@@ -369,13 +369,21 @@ def cantidades_promedio():
     grafica_val_datasets = [
         {'label': 'Total Día', 'data': [float(v.total_ventas) for v in ventas_mes], 'backgroundColor': '#212529'},
         {'label': 'Alm+Parr+Des', 'data': [valores_dia[f].get('Almuerzos',0)+valores_dia[f].get('Parrillas',0)+valores_dia[f].get('Desayunos',0) for f in grafica_val_labels], 'backgroundColor': '#0d6efd'},
-        {'label': 'Almuerzos', 'data': [valores_dia[f].get('Almuerzos',0) for f in grafica_val_labels], 'backgroundColor': '#198754'},
-        {'label': 'Parrillas', 'data': [valores_dia[f].get('Parrillas',0) for f in grafica_val_labels], 'backgroundColor': '#fd7e14'},
-        {'label': 'Desayunos', 'data': [valores_dia[f].get('Desayunos',0) for f in grafica_val_labels], 'backgroundColor': '#6f42c1'},
     ]
+    if valores_cat.get('Almuerzos', 0) > 0:
+        grafica_val_datasets.append({'label': 'Almuerzos', 'data': [valores_dia[f].get('Almuerzos',0) for f in grafica_val_labels], 'backgroundColor': '#198754'})
+    if valores_cat.get('Parrillas', 0) > 0:
+        grafica_val_datasets.append({'label': 'Parrillas', 'data': [valores_dia[f].get('Parrillas',0) for f in grafica_val_labels], 'backgroundColor': '#fd7e14'})
+    if valores_cat.get('Desayunos', 0) > 0:
+        grafica_val_datasets.append({'label': 'Desayunos', 'data': [valores_dia[f].get('Desayunos',0) for f in grafica_val_labels], 'backgroundColor': '#6f42c1'})
     otras_cats = [c for c in valores_cat.keys() if c not in categorias_platos]
-    if otras_cats:
-        grafica_val_datasets.append({'label': 'Otros', 'data': [sum(valores_dia[f].get(c,0) for c in otras_cats) for f in grafica_val_labels], 'backgroundColor': '#6c757d'})
+    colores_otras = ['#6c757d', '#20c997', '#e83e8c', '#17a2b8', '#ffc107']
+    for i, cat_o in enumerate(otras_cats):
+        grafica_val_datasets.append({
+            'label': cat_o,
+            'data': [valores_dia[f].get(cat_o, 0) for f in grafica_val_labels],
+            'backgroundColor': colores_otras[i % len(colores_otras)]
+        })
 
     return render_template('reportes/cantidades_promedio.html',
                            mes=mes, anio=anio, dias_cerrados=dias_cerrados,
