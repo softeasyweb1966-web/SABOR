@@ -88,6 +88,9 @@ def index():
     pagos_creditos_hoy = PagoCredito.query.filter_by(fecha=venta_dia.fecha).all()
     total_pagos_creditos_hoy = sum(p.monto for p in pagos_creditos_hoy)
 
+    # Créditos otorgados hoy (para mostrar y permitir eliminar)
+    creditos_hoy = Credito.query.filter_by(fecha=venta_dia.fecha).all()
+
     return render_template('ventas/index.html',
                            venta_dia=venta_dia,
                            categorias=categorias,
@@ -101,7 +104,8 @@ def index():
                            ultima_categoria=ultima_categoria,
                            creditos_pendientes=creditos_pendientes,
                            pagos_creditos_hoy=pagos_creditos_hoy,
-                           total_pagos_creditos_hoy=total_pagos_creditos_hoy)
+                           total_pagos_creditos_hoy=total_pagos_creditos_hoy,
+                           creditos_hoy=creditos_hoy)
 
 
 @bp.route('/abrir', methods=['POST'])
@@ -330,6 +334,29 @@ def anular_pago_credito(pago_id):
     db.session.delete(pago)
     db.session.commit()
     flash(f'Pago de ${monto:,.0f} de {nombre} anulado. Saldo devuelto al crédito.', 'success')
+    return redirect(url_for('ventas.index'))
+
+
+@bp.route('/eliminar-credito/<int:credito_id>', methods=['POST'])
+@login_required
+@rol_requerido('Administrador', 'Caja')
+def eliminar_credito_dia(credito_id):
+    """Eliminar un crédito registrado hoy (antes de cerrar caja)."""
+    credito = Credito.query.get_or_404(credito_id)
+
+    venta_dia = obtener_venta_abierta()
+    if not venta_dia or venta_dia.estado != 'abierto':
+        flash('No se puede eliminar: el día no está abierto.', 'danger')
+        return redirect(url_for('ventas.index'))
+
+    nombre = credito.persona.nombre
+    monto = credito.monto_total
+
+    # Eliminar pagos asociados si los tiene
+    PagoCredito.query.filter_by(credito_id=credito.id).delete()
+    db.session.delete(credito)
+    db.session.commit()
+    flash(f'Crédito de ${monto:,.0f} de {nombre} eliminado.', 'success')
     return redirect(url_for('ventas.index'))
 
 

@@ -225,6 +225,35 @@
         {% endif %}
         {% endfor %}
 
+        <!-- Créditos registrados hoy -->
+        {% if creditos_hoy and venta_dia.estado == 'abierto' %}
+        <div class="card mb-2 border-warning">
+            <div class="card-header py-2 bg-warning text-dark d-flex justify-content-between">
+                <h6 class="mb-0"><i class="bi bi-credit-card"></i> Créditos del día</h6>
+                <span class="badge bg-dark">${{ "{:,.0f}".format(creditos_hoy|sum(attribute='monto_total')) }}</span>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        {% for c in creditos_hoy %}
+                        <tr>
+                            <td>{{ c.persona.nombre }}</td>
+                            <td class="small text-muted">{{ c.observacion or '' }}</td>
+                            <td class="text-end fw-semibold">${{ "{:,.0f}".format(c.monto_total) }}</td>
+                            <td style="width:25px;">
+                                <form action="{{ url_for('ventas.eliminar_credito_dia', credito_id=c.id) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Eliminar este crédito?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-x-circle"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Totales -->
         <div class="card bg-dark text-white">
             <div class="card-body py-2">
