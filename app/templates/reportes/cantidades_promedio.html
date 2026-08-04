@@ -53,6 +53,7 @@
             <div class="card-body py-3">
                 <small>Valor Platos ($)</small>
                 <h4 class="mb-0">${{ "{:,.0f}".format(valor_platos) }}</h4>
+                <small>Alm: ${{ "{:,.0f}".format(valores_cat.get('Almuerzos', 0)) }} | Parr: ${{ "{:,.0f}".format(valores_cat.get('Parrillas', 0)) }} | Des: ${{ "{:,.0f}".format(valores_cat.get('Desayunos', 0)) }}</small><br>
                 <small>Prom: ${{ "{:,.0f}".format(promedio_valor_platos) }}/día</small>
             </div>
         </div>
