@@ -114,10 +114,19 @@ def estado_cuenta():
     """Estado de cuenta de una persona: todos sus créditos y pagos."""
     persona_id = request.args.get('persona_id', type=int)
 
-    # Lista de personas con créditos
+    # Lista de personas con créditos pendientes
     personas_con_creditos = db.session.query(Persona).join(Credito).filter(
         Credito.estado.in_(['pendiente', 'abonado'])
     ).distinct().order_by(Persona.nombre).all()
+
+    # Resumen de deuda por persona (para vista "todos")
+    resumen_todos = []
+    total_general = Decimal('0')
+    for p in personas_con_creditos:
+        deuda = sum(c.saldo_pendiente for c in p.creditos if c.estado in ['pendiente', 'abonado'])
+        if deuda > 0:
+            resumen_todos.append({'persona': p, 'deuda': deuda})
+            total_general += deuda
 
     persona = None
     creditos_persona = []
@@ -140,4 +149,6 @@ def estado_cuenta():
                            creditos_persona=creditos_persona,
                            total_deuda=total_deuda,
                            total_creditos=total_creditos,
-                           total_pagado=total_pagado)
+                           total_pagado=total_pagado,
+                           resumen_todos=resumen_todos,
+                           total_general=total_general)
