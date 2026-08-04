@@ -51,7 +51,7 @@ def index():
     productos_por_cat = {}
     for cat in categorias:
         productos_por_cat[cat.id] = Producto.query.filter_by(
-            categoria_id=cat.id, activo=True
+            categoria_id=cat.id, activo=True, se_vende=True
         ).order_by(Producto.nombre).all()
 
     # Detalles del día
