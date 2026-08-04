@@ -24,36 +24,75 @@
     </div>
 </div>
 
-<!-- Tarjetas de promedio por categoría -->
+<!-- Tarjetas resumen -->
 <div class="row g-3 mb-4">
-    <!-- Tarjeta resumen total platos -->
-    <div class="col">
-        <div class="card bg-dark text-white text-center h-100">
-            <div class="card-body py-3">
-                <small>Total Platos</small>
-                <h4 class="mb-0">{{ total_platos }}</h4>
-                <small>promedio/día: <strong>{{ promedio_platos }}</strong></small>
-            </div>
-        </div>
-    </div>
-    <!-- Tarjeta valor total -->
-    <div class="col">
+    <!-- 1. Valor Total Mes -->
+    <div class="col-md-3">
         <div class="card bg-success text-white text-center h-100">
             <div class="card-body py-3">
                 <small>Valor Total Mes</small>
                 <h4 class="mb-0">${{ "{:,.0f}".format(total_valor_mes) }}</h4>
-                <small>promedio/día: <strong>${{ "{:,.0f}".format(promedio_valor) }}</strong></small>
+                <small>{{ dias_cerrados }} días | Prom: ${{ "{:,.0f}".format(promedio_valor) }}/día</small>
             </div>
         </div>
     </div>
-    {% for cat_nombre, promedio in promedios.items() %}
+    <!-- 2. Total Platos (cantidades) -->
+    <div class="col-md-3">
+        <div class="card bg-dark text-white text-center h-100">
+            <div class="card-body py-3">
+                <small>Total Platos (cant.)</small>
+                <h4 class="mb-0">{{ total_platos }}</h4>
+                <small>Alm: {{ platos_almuerzos }} | Parr: {{ platos_parrillas }} | Des: {{ platos_desayunos }}</small><br>
+                <small>Prom: {{ promedio_platos }}/día</small>
+            </div>
+        </div>
+    </div>
+    <!-- 3. Valor Platos ($) -->
+    <div class="col-md-3">
+        <div class="card bg-primary text-white text-center h-100">
+            <div class="card-body py-3">
+                <small>Valor Platos ($)</small>
+                <h4 class="mb-0">${{ "{:,.0f}".format(valor_platos) }}</h4>
+                <small>Prom: ${{ "{:,.0f}".format(promedio_valor_platos) }}/día</small>
+            </div>
+        </div>
+    </div>
+    <!-- 4. Días -->
+    <div class="col-md-3">
+        <div class="card bg-info text-white text-center h-100">
+            <div class="card-body py-3">
+                <small>Días Cerrados</small>
+                <h4 class="mb-0">{{ dias_cerrados }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tarjetas por categoría (Almuerzos, Parrillas, Desayunos primero) -->
+<div class="row g-2 mb-4">
+    {% for cat_nombre in ['Almuerzos', 'Parrillas', 'Desayunos'] %}
     {% if totales_cat.get(cat_nombre, 0) > 0 %}
     <div class="col">
         <div class="card border-primary text-center h-100">
-            <div class="card-body py-3">
+            <div class="card-body py-2">
                 <small class="text-muted">{{ cat_nombre }}</small>
-                <h4 class="mb-0 text-primary">{{ promedio }}</h4>
-                <small class="text-muted">promedio/día</small>
+                <h5 class="mb-0 text-primary">{{ promedios.get(cat_nombre, 0) }}</h5>
+                <small class="text-muted">prom/día</small>
+                <hr class="my-1">
+                <small>Total: <strong>{{ totales_cat[cat_nombre] }}</strong> | ${{ "{:,.0f}".format(valores_cat.get(cat_nombre, 0)) }}</small>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% for cat_nombre, promedio in promedios.items() %}
+    {% if cat_nombre not in ['Almuerzos', 'Parrillas', 'Desayunos'] and totales_cat.get(cat_nombre, 0) > 0 %}
+    <div class="col">
+        <div class="card border-secondary text-center h-100">
+            <div class="card-body py-2">
+                <small class="text-muted">{{ cat_nombre }}</small>
+                <h5 class="mb-0">{{ promedio }}</h5>
+                <small class="text-muted">prom/día</small>
                 <hr class="my-1">
                 <small>Total: <strong>{{ totales_cat[cat_nombre] }}</strong> | ${{ "{:,.0f}".format(valores_cat.get(cat_nombre, 0)) }}</small>
             </div>
@@ -63,14 +102,14 @@
     {% endfor %}
 </div>
 
-<!-- Gráfica de cantidades por día por categoría -->
+<!-- Gráfica de VALORES por día (barras verticales agrupadas) -->
 {% if dias_cerrados > 0 %}
 <div class="card mb-4">
     <div class="card-header py-2">
-        <h6 class="mb-0"><i class="bi bi-bar-chart-steps"></i> Cantidades vendidas por día y categoría</h6>
+        <h6 class="mb-0"><i class="bi bi-bar-chart"></i> Valores por Día ($)</h6>
     </div>
     <div class="card-body">
-        <canvas id="chartCantidades" height="100"></canvas>
+        <canvas id="chartValores" height="100"></canvas>
     </div>
 </div>
 {% else %}
@@ -81,13 +120,13 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-const ctx = document.getElementById('chartCantidades');
+const ctx = document.getElementById('chartValores');
 if (ctx) {
     new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: {{ grafica_labels|safe }},
-            datasets: {{ grafica_datasets|safe }}
+            labels: {{ grafica_val_labels|safe }},
+            datasets: {{ grafica_val_datasets|safe }}
         },
         options: {
             responsive: true,
@@ -95,12 +134,12 @@ if (ctx) {
                 legend: { position: 'top' }
             },
             scales: {
-                x: { stacked: true },
                 y: {
-                    stacked: true,
                     beginAtZero: true,
                     ticks: {
-                        stepSize: 5
+                        callback: function(value) {
+                            return '$' + value.toLocaleString();
+                        }
                     }
                 }
             }

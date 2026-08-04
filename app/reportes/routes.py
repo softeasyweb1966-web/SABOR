@@ -339,32 +339,54 @@ def cantidades_promedio():
                 'borderWidth': 1
             })
 
-    # Total platos (almuerzos + desayunos + parrillas) y valores
-    categorias_platos = ['Almuerzos', 'Desayunos', 'Parrillas']
+    # Total platos (almuerzos + parrillas + desayunos)
+    categorias_platos = ['Almuerzos', 'Parrillas', 'Desayunos']
     total_platos = sum(totales_cat.get(c, 0) for c in categorias_platos)
     promedio_platos = round(total_platos / dias_cerrados, 1) if dias_cerrados > 0 else 0
+    platos_almuerzos = totales_cat.get('Almuerzos', 0)
+    platos_parrillas = totales_cat.get('Parrillas', 0)
+    platos_desayunos = totales_cat.get('Desayunos', 0)
 
     # Valor total del mes y promedio en valor
     total_valor_mes = sum(float(v.total_ventas) for v in ventas_mes)
     promedio_valor = round(total_valor_mes / dias_cerrados, 0) if dias_cerrados > 0 else 0
 
-    # Valores por categoría
+    # Valores por categoría y por día
     valores_cat = defaultdict(float)
+    valores_dia = defaultdict(lambda: defaultdict(float))
     for venta in ventas_mes:
-        detalles = VentaDetalle.query.filter_by(venta_diaria_id=venta.id, es_cortesia=False).all()
-        for d in detalles:
-            valores_cat[d.producto.categoria.nombre] += float(d.subtotal)
+        detalles_v = VentaDetalle.query.filter_by(venta_diaria_id=venta.id, es_cortesia=False).all()
+        for d in detalles_v:
+            cat_n = d.producto.categoria.nombre
+            valores_cat[cat_n] += float(d.subtotal)
+            valores_dia[venta.fecha.strftime('%d/%m')][cat_n] += float(d.subtotal)
+
+    valor_platos = sum(valores_cat.get(c, 0) for c in categorias_platos)
+    promedio_valor_platos = round(valor_platos / dias_cerrados, 0) if dias_cerrados > 0 else 0
+
+    # Gráfica de valores por día (barras verticales agrupadas)
+    grafica_val_labels = [v.fecha.strftime('%d/%m') for v in ventas_mes]
+    grafica_val_datasets = [
+        {'label': 'Total Día', 'data': [float(v.total_ventas) for v in ventas_mes], 'backgroundColor': '#212529'},
+        {'label': 'Alm+Parr+Des', 'data': [valores_dia[f].get('Almuerzos',0)+valores_dia[f].get('Parrillas',0)+valores_dia[f].get('Desayunos',0) for f in grafica_val_labels], 'backgroundColor': '#0d6efd'},
+        {'label': 'Almuerzos', 'data': [valores_dia[f].get('Almuerzos',0) for f in grafica_val_labels], 'backgroundColor': '#198754'},
+        {'label': 'Parrillas', 'data': [valores_dia[f].get('Parrillas',0) for f in grafica_val_labels], 'backgroundColor': '#fd7e14'},
+        {'label': 'Desayunos', 'data': [valores_dia[f].get('Desayunos',0) for f in grafica_val_labels], 'backgroundColor': '#6f42c1'},
+    ]
+    otras_cats = [c for c in valores_cat.keys() if c not in categorias_platos]
+    if otras_cats:
+        grafica_val_datasets.append({'label': 'Otros', 'data': [sum(valores_dia[f].get(c,0) for c in otras_cats) for f in grafica_val_labels], 'backgroundColor': '#6c757d'})
 
     return render_template('reportes/cantidades_promedio.html',
-                           mes=mes,
-                           anio=anio,
-                           dias_cerrados=dias_cerrados,
-                           totales_cat=dict(totales_cat),
-                           promedios=promedios,
+                           mes=mes, anio=anio, dias_cerrados=dias_cerrados,
+                           totales_cat=dict(totales_cat), promedios=promedios,
                            grafica_labels=json.dumps(grafica_labels),
                            grafica_datasets=json.dumps(grafica_datasets),
-                           total_platos=total_platos,
-                           promedio_platos=promedio_platos,
-                           total_valor_mes=total_valor_mes,
-                           promedio_valor=promedio_valor,
-                           valores_cat=dict(valores_cat))
+                           total_platos=total_platos, promedio_platos=promedio_platos,
+                           platos_almuerzos=platos_almuerzos, platos_parrillas=platos_parrillas,
+                           platos_desayunos=platos_desayunos,
+                           total_valor_mes=total_valor_mes, promedio_valor=promedio_valor,
+                           valor_platos=valor_platos, promedio_valor_platos=promedio_valor_platos,
+                           valores_cat=dict(valores_cat),
+                           grafica_val_labels=json.dumps(grafica_val_labels),
+                           grafica_val_datasets=json.dumps(grafica_val_datasets))
