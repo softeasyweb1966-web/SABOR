@@ -96,6 +96,21 @@
             </div>
         </div>
     </div>
+    <!-- 6. Cantidades Proteínas compradas -->
+    {% if compras_proteinas %}
+    <div class="col-md-3">
+        <div class="card border-warning h-100">
+            <div class="card-body py-2">
+                <small class="fw-bold text-warning">Proteínas Compradas</small>
+                {% for nombre, datos in compras_proteinas.items() %}
+                <div class="d-flex justify-content-between small">
+                    <span>{{ nombre.replace('PROTEINA ', '') }}</span><strong>{{ "%.0f"|format(datos.cantidad) }}</strong>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Tarjetas por categoría (Almuerzos, Parrillas, Desayunos primero) -->

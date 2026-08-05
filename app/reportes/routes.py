@@ -374,9 +374,14 @@ def cantidades_promedio():
 
     # Compras por categoría
     compras_por_cat = defaultdict(float)
+    compras_proteinas = defaultdict(lambda: {'cantidad': 0, 'valor': 0})
     for c in compras_mes:
         cat_nombre = c.categoria.nombre if c.categoria else 'Sin categoría'
         compras_por_cat[cat_nombre] += float(c.costo_total)
+        # Detalle proteínas
+        if c.producto and 'PROTEINA' in c.producto.nombre.upper():
+            compras_proteinas[c.producto.nombre]['cantidad'] += float(c.cantidad)
+            compras_proteinas[c.producto.nombre]['valor'] += float(c.costo_total)
 
     gastos_mes = Gasto.query.filter(
         db.extract('month', Gasto.fecha) == mes,
@@ -432,4 +437,5 @@ def cantidades_promedio():
                            total_compras_mes=total_compras_mes,
                            total_gastos_mes=total_gastos_mes,
                            compras_por_cat=dict(compras_por_cat),
+                           compras_proteinas=dict(compras_proteinas),
                            gastos_por_tipo=dict(gastos_por_tipo))
