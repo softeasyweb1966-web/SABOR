@@ -391,25 +391,28 @@ def cantidades_promedio():
 
     total_egresos_mes = total_compras_mes + total_gastos_mes
 
-    # Gráfica de valores por día (barras verticales agrupadas)
+    # Gráfica: Total Día en VALOR, el resto en CANTIDADES
     grafica_val_labels = [v.fecha.strftime('%d/%m') for v in ventas_mes]
+
+    # Cantidades por día por categoría (ya las tenemos en cantidades_dia)
     grafica_val_datasets = [
-        {'label': 'Total Día', 'data': [float(v.total_ventas) for v in ventas_mes], 'backgroundColor': '#212529'},
-        {'label': 'Alm+Parr+Des', 'data': [valores_dia[f].get('Almuerzos',0)+valores_dia[f].get('Parrillas',0)+valores_dia[f].get('Desayunos',0) for f in grafica_val_labels], 'backgroundColor': '#0d6efd'},
+        {'label': 'Total Día ($)', 'data': [float(v.total_ventas) for v in ventas_mes], 'backgroundColor': '#212529', 'yAxisID': 'yValor'},
+        {'label': 'Alm+Parr+Des', 'data': [cantidades_dia[f].get('Almuerzos',0)+cantidades_dia[f].get('Parrillas',0)+cantidades_dia[f].get('Desayunos',0) for f in grafica_val_labels], 'backgroundColor': '#0d6efd', 'yAxisID': 'yCant'},
     ]
-    if valores_cat.get('Almuerzos', 0) > 0:
-        grafica_val_datasets.append({'label': 'Almuerzos', 'data': [valores_dia[f].get('Almuerzos',0) for f in grafica_val_labels], 'backgroundColor': '#198754'})
-    if valores_cat.get('Parrillas', 0) > 0:
-        grafica_val_datasets.append({'label': 'Parrillas', 'data': [valores_dia[f].get('Parrillas',0) for f in grafica_val_labels], 'backgroundColor': '#fd7e14'})
-    if valores_cat.get('Desayunos', 0) > 0:
-        grafica_val_datasets.append({'label': 'Desayunos', 'data': [valores_dia[f].get('Desayunos',0) for f in grafica_val_labels], 'backgroundColor': '#6f42c1'})
-    otras_cats = [c for c in valores_cat.keys() if c not in categorias_platos]
+    if totales_cat.get('Almuerzos', 0) > 0:
+        grafica_val_datasets.append({'label': 'Almuerzos', 'data': [cantidades_dia[f].get('Almuerzos',0) for f in grafica_val_labels], 'backgroundColor': '#198754', 'yAxisID': 'yCant'})
+    if totales_cat.get('Parrillas', 0) > 0:
+        grafica_val_datasets.append({'label': 'Parrillas', 'data': [cantidades_dia[f].get('Parrillas',0) for f in grafica_val_labels], 'backgroundColor': '#fd7e14', 'yAxisID': 'yCant'})
+    if totales_cat.get('Desayunos', 0) > 0:
+        grafica_val_datasets.append({'label': 'Desayunos', 'data': [cantidades_dia[f].get('Desayunos',0) for f in grafica_val_labels], 'backgroundColor': '#6f42c1', 'yAxisID': 'yCant'})
+    otras_cats = [c for c in totales_cat.keys() if c not in categorias_platos and totales_cat[c] > 0]
     colores_otras = ['#6c757d', '#20c997', '#e83e8c', '#17a2b8', '#ffc107']
     for i, cat_o in enumerate(otras_cats):
         grafica_val_datasets.append({
             'label': cat_o,
-            'data': [valores_dia[f].get(cat_o, 0) for f in grafica_val_labels],
-            'backgroundColor': colores_otras[i % len(colores_otras)]
+            'data': [cantidades_dia[f].get(cat_o, 0) for f in grafica_val_labels],
+            'backgroundColor': colores_otras[i % len(colores_otras)],
+            'yAxisID': 'yCant'
         })
 
     return render_template('reportes/cantidades_promedio.html',
