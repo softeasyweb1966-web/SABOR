@@ -78,41 +78,25 @@
             </div>
         </div>
     </div>
-</div>
-
-<!-- Detalle Compras y Gastos -->
-{% if compras_por_cat or gastos_por_tipo %}
-<div class="row g-2 mb-3">
-    {% if compras_por_cat %}
-    <div class="col-md-6">
+    <!-- 5. Detalle Compras y Gastos -->
+    <div class="col-md-3">
         <div class="card border-danger h-100">
-            <div class="card-header py-1 bg-danger text-white"><small class="fw-bold">Compras por Categoría</small></div>
-            <div class="card-body py-1">
+            <div class="card-body py-2">
+                <small class="fw-bold text-danger">Detalle Egresos</small>
                 {% for cat, valor in compras_por_cat.items() %}
                 <div class="d-flex justify-content-between small">
                     <span>{{ cat }}</span><strong>${{ "{:,.0f}".format(valor) }}</strong>
                 </div>
                 {% endfor %}
-            </div>
-        </div>
-    </div>
-    {% endif %}
-    {% if gastos_por_tipo %}
-    <div class="col-md-6">
-        <div class="card border-danger h-100">
-            <div class="card-header py-1 bg-danger text-white"><small class="fw-bold">Gastos por Tipo</small></div>
-            <div class="card-body py-1">
                 {% for tipo, valor in gastos_por_tipo.items() %}
-                <div class="d-flex justify-content-between small">
+                <div class="d-flex justify-content-between small text-muted">
                     <span>{{ tipo }}</span><strong>${{ "{:,.0f}".format(valor) }}</strong>
                 </div>
                 {% endfor %}
             </div>
         </div>
     </div>
-    {% endif %}
 </div>
-{% endif %}
 
 <!-- Tarjetas por categoría (Almuerzos, Parrillas, Desayunos primero) -->
 <div class="row g-2 mb-4">
