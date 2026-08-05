@@ -364,6 +364,33 @@ def cantidades_promedio():
     valor_platos = sum(valores_cat.get(c, 0) for c in categorias_platos)
     promedio_valor_platos = round(valor_platos / dias_cerrados, 0) if dias_cerrados > 0 else 0
 
+    # Compras y gastos del mes
+    from app.models import Compra, Gasto
+    compras_mes = Compra.query.filter(
+        db.extract('month', Compra.fecha) == mes,
+        db.extract('year', Compra.fecha) == anio
+    ).all()
+    total_compras_mes = sum(float(c.costo_total) for c in compras_mes)
+
+    # Compras por categoría
+    compras_por_cat = defaultdict(float)
+    for c in compras_mes:
+        cat_nombre = c.categoria.nombre if c.categoria else 'Sin categoría'
+        compras_por_cat[cat_nombre] += float(c.costo_total)
+
+    gastos_mes = Gasto.query.filter(
+        db.extract('month', Gasto.fecha) == mes,
+        db.extract('year', Gasto.fecha) == anio
+    ).all()
+    total_gastos_mes = sum(float(g.monto) for g in gastos_mes)
+
+    # Gastos por tipo
+    gastos_por_tipo = defaultdict(float)
+    for g in gastos_mes:
+        gastos_por_tipo[g.tipo_gasto.nombre] += float(g.monto)
+
+    total_egresos_mes = total_compras_mes + total_gastos_mes
+
     # Gráfica de valores por día (barras verticales agrupadas)
     grafica_val_labels = [v.fecha.strftime('%d/%m') for v in ventas_mes]
     grafica_val_datasets = [
@@ -397,4 +424,9 @@ def cantidades_promedio():
                            valor_platos=valor_platos, promedio_valor_platos=promedio_valor_platos,
                            valores_cat=dict(valores_cat),
                            grafica_val_labels=json.dumps(grafica_val_labels),
-                           grafica_val_datasets=json.dumps(grafica_val_datasets))
+                           grafica_val_datasets=json.dumps(grafica_val_datasets),
+                           total_egresos_mes=total_egresos_mes,
+                           total_compras_mes=total_compras_mes,
+                           total_gastos_mes=total_gastos_mes,
+                           compras_por_cat=dict(compras_por_cat),
+                           gastos_por_tipo=dict(gastos_por_tipo))

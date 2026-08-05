@@ -36,7 +36,18 @@
             </div>
         </div>
     </div>
-    <!-- 2. Total Platos (cantidades) -->
+    <!-- 2. Compras y Gastos del Mes -->
+    <div class="col-md-3">
+        <div class="card bg-danger text-white text-center h-100">
+            <div class="card-body py-2">
+                <small>Compras + Gastos Mes</small>
+                <h4 class="mb-0">${{ "{:,.0f}".format(total_egresos_mes) }}</h4>
+                <small>Compras: ${{ "{:,.0f}".format(total_compras_mes) }}</small><br>
+                <small>Gastos: ${{ "{:,.0f}".format(total_gastos_mes) }}</small>
+            </div>
+        </div>
+    </div>
+    <!-- 3. Total Platos (cantidades) -->
     <div class="col-md-3">
         <div class="card bg-dark text-white text-center h-100">
             <div class="card-body py-3">
@@ -68,6 +79,40 @@
         </div>
     </div>
 </div>
+
+<!-- Detalle Compras y Gastos -->
+{% if compras_por_cat or gastos_por_tipo %}
+<div class="row g-2 mb-3">
+    {% if compras_por_cat %}
+    <div class="col-md-6">
+        <div class="card border-danger h-100">
+            <div class="card-header py-1 bg-danger text-white"><small class="fw-bold">Compras por Categoría</small></div>
+            <div class="card-body py-1">
+                {% for cat, valor in compras_por_cat.items() %}
+                <div class="d-flex justify-content-between small">
+                    <span>{{ cat }}</span><strong>${{ "{:,.0f}".format(valor) }}</strong>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% if gastos_por_tipo %}
+    <div class="col-md-6">
+        <div class="card border-danger h-100">
+            <div class="card-header py-1 bg-danger text-white"><small class="fw-bold">Gastos por Tipo</small></div>
+            <div class="card-body py-1">
+                {% for tipo, valor in gastos_por_tipo.items() %}
+                <div class="d-flex justify-content-between small">
+                    <span>{{ tipo }}</span><strong>${{ "{:,.0f}".format(valor) }}</strong>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
 
 <!-- Tarjetas por categoría (Almuerzos, Parrillas, Desayunos primero) -->
 <div class="row g-2 mb-4">
