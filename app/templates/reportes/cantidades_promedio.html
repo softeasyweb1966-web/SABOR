@@ -111,6 +111,21 @@
         </div>
     </div>
     {% endif %}
+    <!-- 7. Proteínas descargadas por ventas -->
+    {% if ventas_proteinas %}
+    <div class="col-md-3">
+        <div class="card border-success h-100">
+            <div class="card-body py-2">
+                <small class="fw-bold text-success">Proteínas Vendidas</small>
+                {% for nombre, cantidad in ventas_proteinas.items() %}
+                <div class="d-flex justify-content-between small">
+                    <span>{{ nombre.replace('PROTEINA ', '') }}</span><strong>{{ "%.0f"|format(cantidad) }}</strong>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Tarjetas por categoría (Almuerzos, Parrillas, Desayunos primero) -->

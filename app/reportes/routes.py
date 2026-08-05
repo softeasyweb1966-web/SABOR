@@ -364,6 +364,20 @@ def cantidades_promedio():
     valor_platos = sum(valores_cat.get(c, 0) for c in categorias_platos)
     promedio_valor_platos = round(valor_platos / dias_cerrados, 0) if dias_cerrados > 0 else 0
 
+    # Proteínas descargadas por ventas (via receta)
+    from app.models import Receta
+    ventas_proteinas = defaultdict(float)
+    for venta in ventas_mes:
+        detalles_v2 = VentaDetalle.query.filter_by(venta_diaria_id=venta.id).all()
+        for d in detalles_v2:
+            # Descuento directo
+            if d.producto.maneja_inventario and 'PROTEINA' in d.producto.nombre.upper():
+                ventas_proteinas[d.producto.nombre] += float(d.cantidad)
+            # Descuento por receta
+            for r in d.producto.receta:
+                if 'PROTEINA' in r.insumo.nombre.upper():
+                    ventas_proteinas[r.insumo.nombre] += float(r.cantidad * d.cantidad)
+
     # Compras y gastos del mes
     from app.models import Compra, Gasto
     compras_mes = Compra.query.filter(
@@ -438,4 +452,5 @@ def cantidades_promedio():
                            total_gastos_mes=total_gastos_mes,
                            compras_por_cat=dict(compras_por_cat),
                            compras_proteinas=dict(compras_proteinas),
+                           ventas_proteinas=dict(ventas_proteinas),
                            gastos_por_tipo=dict(gastos_por_tipo))
