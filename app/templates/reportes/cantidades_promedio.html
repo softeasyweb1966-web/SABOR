@@ -186,11 +186,12 @@
 Chart.register(ChartDataLabels);
 const ctx = document.getElementById('chartValores');
 if (ctx) {
+    const datasets = {{ grafica_val_datasets|safe }};
     new Chart(ctx, {
         type: 'bar',
         data: {
             labels: {{ grafica_val_labels|safe }},
-            datasets: {{ grafica_val_datasets|safe }}
+            datasets: datasets
         },
         options: {
             responsive: true,
@@ -203,33 +204,28 @@ if (ctx) {
                     font: { size: 10 },
                     formatter: function(value, context) {
                         if (value === 0) return '';
+                        var ds = context.dataset;
+                        // Total Día muestra valor
                         if (context.datasetIndex === 0) {
                             return '$' + Math.round(value/1000) + 'k';
                         }
-                        return value;
+                        // Las demás muestran la cantidad
+                        if (ds.cantidades) {
+                            var cant = ds.cantidades[context.dataIndex];
+                            return cant > 0 ? cant : '';
+                        }
+                        return '';
                     }
                 }
             },
             scales: {
-                yValor: {
-                    type: 'linear',
-                    position: 'left',
+                y: {
                     beginAtZero: true,
                     ticks: {
                         callback: function(value) {
                             return '$' + (value/1000).toLocaleString() + 'k';
                         }
-                    },
-                    grid: { drawOnChartArea: true }
-                },
-                yCant: {
-                    type: 'linear',
-                    position: 'right',
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 5
-                    },
-                    grid: { drawOnChartArea: false }
+                    }
                 }
             }
         }
