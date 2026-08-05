@@ -109,8 +109,10 @@
     <div class="card-header py-2">
         <h6 class="mb-0"><i class="bi bi-bar-chart"></i> Valores por Día ($)</h6>
     </div>
-    <div class="card-body">
-        <canvas id="chartValores" height="100"></canvas>
+    <div class="card-body" style="overflow-x: auto;">
+        <div style="min-width: {{ [dias_cerrados * 120, 720]|max }}px; height: 400px;">
+            <canvas id="chartValores"></canvas>
+        </div>
     </div>
 </div>
 {% else %}
@@ -120,7 +122,9 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script>
+Chart.register(ChartDataLabels);
 const ctx = document.getElementById('chartValores');
 if (ctx) {
     new Chart(ctx, {
@@ -131,15 +135,29 @@ if (ctx) {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
-                legend: { position: 'top' }
+                legend: { position: 'top' },
+                datalabels: {
+                    anchor: 'end',
+                    align: 'top',
+                    font: { size: 10 },
+                    formatter: function(value, context) {
+                        if (value === 0) return '';
+                        // Total Día muestra valor $, las demás muestran cantidad (valor)
+                        if (context.datasetIndex === 0) {
+                            return '$' + Math.round(value/1000) + 'k';
+                        }
+                        return '$' + Math.round(value/1000) + 'k';
+                    }
+                }
             },
             scales: {
                 y: {
                     beginAtZero: true,
                     ticks: {
                         callback: function(value) {
-                            return '$' + value.toLocaleString();
+                            return '$' + (value/1000).toLocaleString() + 'k';
                         }
                     }
                 }

@@ -212,10 +212,13 @@ def agregar_cortesia():
         flash('Producto no encontrado.', 'danger')
         return redirect(url_for('ventas.index'))
 
-    # Verificar que sea almuerzo
-    cat_almuerzos = Categoria.query.filter_by(nombre='Almuerzos').first()
-    if not cat_almuerzos or producto.categoria_id != cat_almuerzos.id:
-        flash('Las cortesias solo aplican para almuerzos.', 'warning')
+    # Verificar que sea almuerzo, parrilla o bebida
+    categorias_cortesia = Categoria.query.filter(
+        Categoria.nombre.in_(['Almuerzos', 'Parrillas', 'Bebidas'])
+    ).all()
+    cat_ids_cortesia = [c.id for c in categorias_cortesia]
+    if producto.categoria_id not in cat_ids_cortesia:
+        flash('Las cortesias solo aplican para almuerzos, parrillas y bebidas.', 'warning')
         return redirect(url_for('ventas.index'))
 
     detalle = VentaDetalle(

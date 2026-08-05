@@ -67,11 +67,18 @@
         </div>
 
         <!-- Cortesías (solo almuerzos) -->
-        {% set cat_almuerzos = categorias|selectattr('nombre', 'equalto', 'Almuerzos')|first %}
-        {% if cat_almuerzos and productos_por_cat[cat_almuerzos.id] %}
+        <!-- Cortesías (almuerzos, parrillas, bebidas) -->
+        {% set cats_cortesia = categorias|selectattr('nombre', 'in', ['Almuerzos', 'Parrillas', 'Bebidas'])|list %}
+        {% set prods_cortesia = [] %}
+        {% for cat in cats_cortesia %}
+            {% for prod in productos_por_cat.get(cat.id, []) %}
+                {% if prods_cortesia.append(prod) %}{% endif %}
+            {% endfor %}
+        {% endfor %}
+        {% if prods_cortesia %}
         <div class="card mt-3">
             <div class="card-header bg-info text-white py-2">
-                <h6 class="mb-0"><i class="bi bi-gift"></i> Registrar Cortesía (Almuerzos)</h6>
+                <h6 class="mb-0"><i class="bi bi-gift"></i> Registrar Cortesía</h6>
             </div>
             <div class="card-body py-2">
                 <form method="POST" action="{{ url_for('ventas.agregar_cortesia') }}">
@@ -79,8 +86,12 @@
                     <div class="row g-2">
                         <div class="col-5">
                             <select name="producto_id" class="form-select form-select-sm" required>
-                                {% for prod in productos_por_cat[cat_almuerzos.id] %}
-                                <option value="{{ prod.id }}">{{ prod.nombre }}</option>
+                                {% for cat in cats_cortesia %}
+                                <optgroup label="{{ cat.nombre }}">
+                                    {% for prod in productos_por_cat.get(cat.id, []) %}
+                                    <option value="{{ prod.id }}">{{ prod.nombre }}</option>
+                                    {% endfor %}
+                                </optgroup>
                                 {% endfor %}
                             </select>
                         </div>
