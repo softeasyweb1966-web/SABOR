@@ -4,11 +4,20 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h3><i class="bi bi-clipboard-data"></i> Inventario (Stock)</h3>
     <div>
+        <form method="POST" action="{{ url_for('inventario.poner_inventario_en_cero') }}" class="d-inline" onsubmit="return confirm('¿Dejar todos los inventarios en cero? Esta acción actualizará todos los stocks.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline-danger me-1">
+                <i class="bi bi-exclamation-octagon"></i> Todo en cero
+            </button>
+        </form>
         <a href="{{ url_for('inventario.ajuste_inventario') }}" class="btn btn-outline-primary me-1">
             <i class="bi bi-pencil-square"></i> Ajustar
         </a>
         <a href="{{ url_for('inventario.merma') }}" class="btn btn-outline-danger me-1">
             <i class="bi bi-trash3"></i> Merma
+        </a>
+        <a href="{{ url_for('inventario.informe_proteinas') }}" class="btn btn-outline-warning me-1">
+            <i class="bi bi-egg-fried"></i> Informe Proteínas
         </a>
         <a href="{{ url_for('inventario.compras') }}" class="btn btn-outline-success">
             <i class="bi bi-bag-plus"></i> Compras

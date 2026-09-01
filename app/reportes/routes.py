@@ -2,14 +2,144 @@ from flask import render_template, request
 from flask_login import login_required
 from app import db
 from app.reportes import bp
-from app.models import VentaDiaria, MovimientoInventario, VentaDetalle
+from app.models import VentaDiaria, MovimientoInventario, VentaDetalle, Compra, Gasto
 from datetime import date
+from decimal import Decimal
 
 
 @bp.route('/')
 @login_required
 def index():
     return render_template('reportes/index.html')
+
+
+@bp.route('/mensual')
+@login_required
+def informe_mensual():
+    """P&G mensual, punto de equilibrio y comportamiento diario."""
+    from calendar import monthrange
+    from collections import defaultdict
+    from datetime import timedelta
+    import json
+    import unicodedata
+
+    mes = request.args.get('mes', date.today().month, type=int)
+    anio = request.args.get('anio', date.today().year, type=int)
+    if not 1 <= mes <= 12:
+        mes = date.today().month
+
+    inicio_mes = date(anio, mes, 1)
+    ultimo_dia = monthrange(anio, mes)[1]
+    fin_mes = date(anio, mes, ultimo_dia)
+
+    ventas_dias = VentaDiaria.query.filter(
+        VentaDiaria.fecha.between(inicio_mes, fin_mes),
+        VentaDiaria.estado.in_(['cerrado_caja', 'cerrado_definitivo'])
+    ).order_by(VentaDiaria.fecha).all()
+    compras = Compra.query.filter(Compra.fecha.between(inicio_mes, fin_mes)).all()
+    gastos = Gasto.query.filter(Gasto.fecha.between(inicio_mes, fin_mes)).all()
+
+    total_ventas = sum((venta.total_ventas for venta in ventas_dias), Decimal('0'))
+    total_compras = sum((compra.costo_total for compra in compras), Decimal('0'))
+    nomina = Decimal('0')
+    servicios = Decimal('0')
+    otros_gastos = Decimal('0')
+    gastos_por_tipo = defaultdict(lambda: Decimal('0'))
+
+    for gasto in gastos:
+        nombre_tipo = gasto.tipo_gasto.nombre
+        tipo_normalizado = unicodedata.normalize('NFKD', nombre_tipo).encode('ascii', 'ignore').decode().lower()
+        gastos_por_tipo[nombre_tipo] += gasto.monto
+        if 'nomina' in tipo_normalizado:
+            nomina += gasto.monto
+        elif 'servicio' in tipo_normalizado:
+            servicios += gasto.monto
+        else:
+            otros_gastos += gasto.monto
+
+    costos_fijos = nomina + servicios + otros_gastos
+    margen_contribucion = total_ventas - total_compras
+    margen_contribucion_pct = (margen_contribucion / total_ventas * 100) if total_ventas else Decimal('0')
+    utilidad_neta = margen_contribucion - costos_fijos
+    margen_neto_pct = (utilidad_neta / total_ventas * 100) if total_ventas else Decimal('0')
+
+    punto_equilibrio = None
+    cobertura_pe_pct = None
+    diferencia_pe = None
+    if margen_contribucion_pct > 0:
+        punto_equilibrio = costos_fijos / (margen_contribucion_pct / 100)
+        diferencia_pe = total_ventas - punto_equilibrio
+        cobertura_pe_pct = (total_ventas / punto_equilibrio * 100) if punto_equilibrio else Decimal('0')
+
+    # El comportamiento diario permite ver si el ritmo de ventas acompana las compras y gastos.
+    ventas_por_fecha = defaultdict(lambda: Decimal('0'))
+    compras_por_fecha = defaultdict(lambda: Decimal('0'))
+    gastos_por_fecha = defaultdict(lambda: Decimal('0'))
+    for venta in ventas_dias:
+        ventas_por_fecha[venta.fecha] += venta.total_ventas
+    for compra in compras:
+        compras_por_fecha[compra.fecha] += compra.costo_total
+    for gasto in gastos:
+        gastos_por_fecha[gasto.fecha] += gasto.monto
+
+    fechas = [inicio_mes + timedelta(days=dia) for dia in range(ultimo_dia)]
+    dias = [
+        {
+            'fecha': fecha,
+            'ventas': ventas_por_fecha[fecha],
+            'compras': compras_por_fecha[fecha],
+            'gastos': gastos_por_fecha[fecha]
+        }
+        for fecha in fechas
+    ]
+    dias_con_ventas = [dia for dia in dias if dia['ventas'] > 0]
+    mejor_dia = max(dias_con_ventas, key=lambda dia: dia['ventas']) if dias_con_ventas else None
+    promedio_diario = total_ventas / len(dias_con_ventas) if dias_con_ventas else Decimal('0')
+
+    if mes == 1:
+        mes_anterior, anio_anterior = 12, anio - 1
+    else:
+        mes_anterior, anio_anterior = mes - 1, anio
+    inicio_anterior = date(anio_anterior, mes_anterior, 1)
+    fin_anterior = date(anio_anterior, mes_anterior, monthrange(anio_anterior, mes_anterior)[1])
+    ventas_anterior = VentaDiaria.query.filter(
+        VentaDiaria.fecha.between(inicio_anterior, fin_anterior),
+        VentaDiaria.estado.in_(['cerrado_caja', 'cerrado_definitivo'])
+    ).all()
+    total_ventas_anterior = sum((venta.total_ventas for venta in ventas_anterior), Decimal('0'))
+    variacion_ventas_pct = (
+        (total_ventas - total_ventas_anterior) / total_ventas_anterior * 100
+        if total_ventas_anterior else None
+    )
+
+    return render_template(
+        'reportes/mensual.html',
+        mes=mes,
+        anio=anio,
+        total_ventas=total_ventas,
+        total_compras=total_compras,
+        nomina=nomina,
+        servicios=servicios,
+        otros_gastos=otros_gastos,
+        gastos_por_tipo=dict(sorted(gastos_por_tipo.items())),
+        costos_fijos=costos_fijos,
+        margen_contribucion=margen_contribucion,
+        margen_contribucion_pct=margen_contribucion_pct,
+        utilidad_neta=utilidad_neta,
+        margen_neto_pct=margen_neto_pct,
+        punto_equilibrio=punto_equilibrio,
+        diferencia_pe=diferencia_pe,
+        cobertura_pe_pct=cobertura_pe_pct,
+        dias_con_ventas=len(dias_con_ventas),
+        promedio_diario=promedio_diario,
+        mejor_dia=mejor_dia,
+        total_ventas_anterior=total_ventas_anterior,
+        variacion_ventas_pct=variacion_ventas_pct,
+        grafica_labels=json.dumps([fecha.strftime('%d') for fecha in fechas]),
+        grafica_ventas=json.dumps([float(dia['ventas']) for dia in dias]),
+        grafica_compras=json.dumps([float(dia['compras']) for dia in dias]),
+        grafica_gastos=json.dumps([float(dia['gastos']) for dia in dias])
+    )
 
 
 @bp.route('/compras-por-categoria')

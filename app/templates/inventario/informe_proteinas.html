@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Informe de Proteínas - SABOR{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h3 class="mb-0"><i class="bi bi-egg-fried"></i> Compras y Ventas de Proteínas</h3>
+        <small class="text-muted">Las ventas muestran la cantidad de proteína descargada por platos vendidos.</small>
+    </div>
+    <a href="{{ url_for('inventario.listar') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Inventario
+    </a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="GET" class="row gy-2 gx-3 align-items-end">
+            <div class="col-sm-auto">
+                <label for="desde" class="form-label small mb-1">Desde</label>
+                <input id="desde" type="date" name="desde" class="form-control form-control-sm" value="{{ fecha_desde }}">
+            </div>
+            <div class="col-sm-auto">
+                <label for="hasta" class="form-label small mb-1">Hasta</label>
+                <input id="hasta" type="date" name="hasta" class="form-control form-control-sm" value="{{ fecha_hasta }}">
+            </div>
+            <div class="col-sm-auto">
+                <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-search"></i> Consultar</button>
+                <a href="{{ url_for('inventario.informe_proteinas') }}" class="btn btn-sm btn-outline-secondary">Limpiar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if filas %}
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Proteína</th>
+                        <th>Unidad</th>
+                        <th class="text-end text-success">Compras</th>
+                        <th class="text-end">Costo compras</th>
+                        <th class="text-end text-danger">Ventas</th>
+                        <th class="text-end">Diferencia</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fila in filas %}
+                    <tr>
+                        <td class="fw-semibold">{{ fila.nombre.replace('PROTEINA ', '') }}</td>
+                        <td>{{ fila.unidad }}</td>
+                        <td class="text-end text-success">{{ "%.2f"|format(fila.compras) }}</td>
+                        <td class="text-end">${{ "{:,.0f}".format(fila.costo_compras) }}</td>
+                        <td class="text-end text-danger">{{ "%.2f"|format(fila.ventas) }}</td>
+                        <td class="text-end fw-semibold {{ 'text-success' if fila.compras - fila.ventas >= 0 else 'text-danger' }}">{{ "%.2f"|format(fila.compras - fila.ventas) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light fw-bold">
+                    <tr>
+                        <td colspan="2">Totales</td>
+                        <td class="text-end text-success">{{ "%.2f"|format(total_compras) }}</td>
+                        <td class="text-end">${{ "{:,.0f}".format(total_costo) }}</td>
+                        <td class="text-end text-danger">{{ "%.2f"|format(total_ventas) }}</td>
+                        <td class="text-end">{{ "%.2f"|format(total_compras - total_ventas) }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">No hay compras ni ventas de proteínas en el período seleccionado.</div>
+{% endif %}
+{% endblock %}

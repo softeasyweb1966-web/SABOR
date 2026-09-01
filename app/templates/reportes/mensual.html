@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Informes Mensuales - SABOR{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h3 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Informe Mensual</h3>
+        <small class="text-muted">P&amp;G, punto de equilibrio y comportamiento del mes.</small>
+    </div>
+    <a href="{{ url_for('reportes.index') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Reportes
+    </a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="GET" class="d-flex align-items-center gap-3">
+            <label class="text-muted small mb-0" for="mes">Mes</label>
+            <select id="mes" name="mes" class="form-select form-select-sm" style="width:auto;">
+                {% for numero in range(1, 13) %}
+                <option value="{{ numero }}" {{ 'selected' if numero == mes }}>{{ ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][numero - 1] }}</option>
+                {% endfor %}
+            </select>
+            <label class="text-muted small mb-0" for="anio">Año</label>
+            <input id="anio" type="number" name="anio" class="form-control form-control-sm" style="width:100px;" value="{{ anio }}">
+            <button type="submit" class="btn btn-sm btn-primary">Consultar</button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="card h-100 border-success"><div class="card-body">
+            <small class="text-muted">Ventas netas</small>
+            <h4 class="mb-0 text-success">${{ "{:,.0f}".format(total_ventas) }}</h4>
+            {% if variacion_ventas_pct is not none %}<small class="{{ 'text-success' if variacion_ventas_pct >= 0 else 'text-danger' }}">{{ '%+.1f'|format(variacion_ventas_pct) }}% vs. mes anterior</small>{% else %}<small class="text-muted">Sin comparación previa</small>{% endif %}
+        </div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100"><div class="card-body">
+            <small class="text-muted">Compras (variable)</small>
+            <h4 class="mb-0 text-warning">${{ "{:,.0f}".format(total_compras) }}</h4>
+            <small class="text-muted">{{ '%.1f'|format((total_compras / total_ventas * 100) if total_ventas else 0) }}% de ventas</small>
+        </div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100"><div class="card-body">
+            <small class="text-muted">Costos fijos</small>
+            <h4 class="mb-0 text-danger">${{ "{:,.0f}".format(costos_fijos) }}</h4>
+            <small class="text-muted">Nómina, servicios y otros gastos</small>
+        </div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100 {{ 'border-success' if utilidad_neta >= 0 else 'border-danger' }}"><div class="card-body">
+            <small class="text-muted">{{ 'Utilidad neta' if utilidad_neta >= 0 else 'Pérdida neta' }}</small>
+            <h4 class="mb-0 {{ 'text-success' if utilidad_neta >= 0 else 'text-danger' }}">${{ "{:,.0f}".format(utilidad_neta|abs) }}</h4>
+            <small class="{{ 'text-success' if margen_neto_pct >= 0 else 'text-danger' }}">{{ '%.1f'|format(margen_neto_pct) }}% sobre ventas</small>
+        </div></div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header"><h5 class="mb-0">P&amp;G del mes</h5></div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <tbody>
+                        <tr><td>Ventas netas</td><td class="text-end text-success fw-semibold">${{ "{:,.0f}".format(total_ventas) }}</td></tr>
+                        <tr><td>(-) Compras de inventario</td><td class="text-end text-danger">${{ "{:,.0f}".format(total_compras) }}</td></tr>
+                        <tr class="table-light"><td class="fw-semibold">Margen de contribución</td><td class="text-end fw-semibold">${{ "{:,.0f}".format(margen_contribucion) }} ({{ '%.1f'|format(margen_contribucion_pct) }}%)</td></tr>
+                        <tr><td class="ps-4">Nómina</td><td class="text-end text-danger">${{ "{:,.0f}".format(nomina) }}</td></tr>
+                        <tr><td class="ps-4">Servicios</td><td class="text-end text-danger">${{ "{:,.0f}".format(servicios) }}</td></tr>
+                        {% if otros_gastos > 0 %}<tr><td class="ps-4">Otros gastos</td><td class="text-end text-danger">${{ "{:,.0f}".format(otros_gastos) }}</td></tr>{% endif %}
+                        <tr class="{{ 'table-success' if utilidad_neta >= 0 else 'table-danger' }}"><td class="fw-bold">{{ 'UTILIDAD NETA' if utilidad_neta >= 0 else 'PÉRDIDA NETA' }}</td><td class="text-end fw-bold">${{ "{:,.0f}".format(utilidad_neta|abs) }} ({{ '%.1f'|format(margen_neto_pct) }}%)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card h-100 {{ 'border-success' if diferencia_pe is not none and diferencia_pe >= 0 else 'border-danger' }}">
+            <div class="card-header"><h5 class="mb-0">Punto de equilibrio</h5></div>
+            <div class="card-body">
+                {% if punto_equilibrio is not none %}
+                <div class="text-muted small">Ventas necesarias para cubrir compras, nómina, servicios y gastos.</div>
+                <h3 class="mt-2">${{ "{:,.0f}".format(punto_equilibrio) }}</h3>
+                <p class="mb-2">Ventas actuales: <strong>${{ "{:,.0f}".format(total_ventas) }}</strong> ({{ '%.1f'|format(cobertura_pe_pct) }}% del punto de equilibrio).</p>
+                <div class="alert {{ 'alert-success' if diferencia_pe >= 0 else 'alert-danger' }} mb-0 py-2">
+                    {% if diferencia_pe >= 0 %}Superó el punto de equilibrio en ${{ "{:,.0f}".format(diferencia_pe) }}.{% else %}Faltan ${{ "{:,.0f}".format(diferencia_pe|abs) }} en ventas para llegar al punto de equilibrio.{% endif %}
+                </div>
+                {% else %}
+                <div class="alert alert-warning mb-0">No es posible calcularlo: las compras son iguales o superiores a las ventas, por lo que no hay margen de contribución positivo.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4"><div class="card h-100"><div class="card-body"><small class="text-muted">Días con ventas cerradas</small><h4 class="mb-0">{{ dias_con_ventas }}</h4></div></div></div>
+    <div class="col-md-4"><div class="card h-100"><div class="card-body"><small class="text-muted">Promedio diario de ventas</small><h4 class="mb-0">${{ "{:,.0f}".format(promedio_diario) }}</h4></div></div></div>
+    <div class="col-md-4"><div class="card h-100"><div class="card-body"><small class="text-muted">Mejor día de ventas</small><h4 class="mb-0">{{ mejor_dia.fecha.strftime('%d/%m') if mejor_dia else '-' }}</h4><small class="text-success">${{ "{:,.0f}".format(mejor_dia.ventas) if mejor_dia else '0' }}</small></div></div></div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Comportamiento diario</h5></div>
+    <div class="card-body"><canvas id="graficaMensual" height="85"></canvas></div>
+</div>
+
+<div class="alert alert-secondary small mb-0"><strong>Base de cálculo:</strong> las compras se consideran costo variable, y nómina, servicios y otros gastos se consideran costos fijos. Por eso, al aumentar las compras sin que aumenten proporcionalmente las ventas, sube el punto de equilibrio y baja el porcentaje de utilidad.</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+new Chart(document.getElementById('graficaMensual'), {
+    data: {
+        labels: {{ grafica_labels|safe }},
+        datasets: [
+            { type: 'line', label: 'Ventas', data: {{ grafica_ventas|safe }}, borderColor: '#198754', backgroundColor: '#198754', borderWidth: 3, tension: 0.25 },
+            { type: 'bar', label: 'Compras', data: {{ grafica_compras|safe }}, backgroundColor: '#ffc10799' },
+            { type: 'bar', label: 'Gastos', data: {{ grafica_gastos|safe }}, backgroundColor: '#dc354599' }
+        ]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, ticks: { callback: value => '$' + value.toLocaleString() } } } }
+});
+</script>
+{% endblock %}

@@ -3,9 +3,17 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h3><i class="bi bi-pencil-square"></i> Ajuste de Inventario</h3>
-    <a href="{{ url_for('inventario.listar') }}" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-arrow-left"></i> Inventario
-    </a>
+    <div class="d-flex gap-2">
+        <form method="POST" action="{{ url_for('inventario.poner_inventario_en_cero') }}" onsubmit="return confirm('¿Dejar todos los inventarios en cero? Esta acción actualizará todos los stocks.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-exclamation-octagon"></i> Dejar todo en cero
+            </button>
+        </form>
+        <a href="{{ url_for('inventario.listar') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Inventario
+        </a>
+    </div>
 </div>
 
 <div class="alert alert-info py-2">

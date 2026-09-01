@@ -3,7 +3,8 @@ from flask_login import login_required, current_user
 from app import db
 from app.inventario import bp
 from app.inventario.forms import CompraItemForm, ComprobanteForm
-from app.models import Producto, Compra, Categoria, ComprobanteCompra, CajaMenor, MovimientoCajaMenor, AjusteInventario
+from app.models import (Producto, Compra, Categoria, ComprobanteCompra, CajaMenor,
+                        MovimientoCajaMenor, AjusteInventario, VentaDiaria, VentaDetalle)
 from app.decorators import rol_requerido
 from decimal import Decimal
 from datetime import date
@@ -19,6 +20,79 @@ from datetime import date
 def listar():
     productos = Producto.query.filter_by(activo=True, maneja_inventario=True).order_by(Producto.nombre).all()
     return render_template('inventario/listar.html', productos=productos)
+
+
+@bp.route('/informe-proteinas')
+@login_required
+@rol_requerido('Administrador', 'Compras')
+def informe_proteinas():
+    """Resumen de compras y salidas por venta de productos tipo proteina."""
+    from datetime import datetime
+
+    fecha_desde = request.args.get('desde', '')
+    fecha_hasta = request.args.get('hasta', '')
+
+    try:
+        desde = datetime.strptime(fecha_desde, '%Y-%m-%d').date() if fecha_desde else None
+        hasta = datetime.strptime(fecha_hasta, '%Y-%m-%d').date() if fecha_hasta else None
+    except ValueError:
+        flash('Las fechas seleccionadas no son validas.', 'warning')
+        return redirect(url_for('inventario.informe_proteinas'))
+
+    proteinas = Producto.query.filter(
+        db.func.upper(Producto.nombre).like('%PROTEINA%')
+    ).order_by(Producto.nombre).all()
+    proteina_ids = {producto.id for producto in proteinas}
+    resumen = {
+        producto.id: {
+            'nombre': producto.nombre,
+            'unidad': producto.unidad_medida,
+            'compras': Decimal('0'),
+            'costo_compras': Decimal('0'),
+            'ventas': Decimal('0')
+        }
+        for producto in proteinas
+    }
+
+    if proteina_ids:
+        compras_query = Compra.query.filter(Compra.producto_id.in_(proteina_ids))
+        if desde:
+            compras_query = compras_query.filter(Compra.fecha >= desde)
+        if hasta:
+            compras_query = compras_query.filter(Compra.fecha <= hasta)
+        for compra in compras_query.all():
+            resumen[compra.producto_id]['compras'] += compra.cantidad
+            resumen[compra.producto_id]['costo_compras'] += compra.costo_total
+
+    ventas_query = db.session.query(VentaDetalle).join(VentaDiaria).filter(
+        VentaDetalle.es_cortesia == False
+    )
+    if desde:
+        ventas_query = ventas_query.filter(VentaDiaria.fecha >= desde)
+    if hasta:
+        ventas_query = ventas_query.filter(VentaDiaria.fecha <= hasta)
+
+    for detalle in ventas_query.all():
+        # Una proteina puede venderse directamente o consumirse por la receta del plato vendido.
+        if detalle.producto_id in proteina_ids:
+            resumen[detalle.producto_id]['ventas'] += Decimal(str(detalle.cantidad))
+        for ingrediente in detalle.producto.receta:
+            if ingrediente.insumo_id in proteina_ids:
+                resumen[ingrediente.insumo_id]['ventas'] += ingrediente.cantidad * detalle.cantidad
+
+    filas = [datos for datos in resumen.values()
+             if datos['compras'] > 0 or datos['ventas'] > 0]
+    filas.sort(key=lambda datos: datos['nombre'])
+
+    return render_template(
+        'inventario/informe_proteinas.html',
+        filas=filas,
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
+        total_compras=sum((fila['compras'] for fila in filas), Decimal('0')),
+        total_ventas=sum((fila['ventas'] for fila in filas), Decimal('0')),
+        total_costo=sum((fila['costo_compras'] for fila in filas), Decimal('0'))
+    )
 
 
 # ============================================================
@@ -266,6 +340,28 @@ def productos_por_categoria(categoria_id):
 # AJUSTE DE INVENTARIO (carga inicial / conteo físico)
 # ============================================================
 
+def _registrar_ajuste_producto(producto, cantidad_nueva, usuario_id, valor=Decimal('0'),
+                               tipo='ajuste_conteo', motivo='Ajuste por conteo fÃ­sico'):
+    """Crear el registro de ajuste y actualizar el stock si hubo cambio."""
+    if cantidad_nueva == producto.stock_actual:
+        return False
+
+    ajuste = AjusteInventario(
+        fecha=date.today(),
+        producto_id=producto.id,
+        tipo=tipo,
+        cantidad_anterior=producto.stock_actual,
+        cantidad_nueva=cantidad_nueva,
+        diferencia=cantidad_nueva - producto.stock_actual,
+        valor=valor,
+        motivo=motivo,
+        usuario_id=usuario_id
+    )
+    db.session.add(ajuste)
+    producto.stock_actual = cantidad_nueva
+    return True
+
+
 @bp.route('/ajuste')
 @login_required
 @rol_requerido('Administrador', 'Compras')
@@ -316,6 +412,32 @@ def guardar_ajuste():
         flash(f'Inventario ajustado: {ajustes_realizados} producto(s) actualizados.', 'success')
     else:
         flash('No hubo cambios en el inventario.', 'info')
+    return redirect(url_for('inventario.ajuste_inventario'))
+
+
+@bp.route('/ajuste/poner-cero', methods=['POST'])
+@login_required
+@rol_requerido('Administrador', 'Compras')
+def poner_inventario_en_cero():
+    """Dejar en cero todos los productos que manejan inventario."""
+    productos = Producto.query.filter_by(activo=True, maneja_inventario=True).all()
+    ajustes_realizados = 0
+
+    for prod in productos:
+        if _registrar_ajuste_producto(
+            prod,
+            Decimal('0'),
+            current_user.id,
+            tipo='ajuste_conteo',
+            motivo='Inventario reiniciado a cero'
+        ):
+            ajustes_realizados += 1
+
+    db.session.commit()
+    if ajustes_realizados > 0:
+        flash(f'Inventario en cero: {ajustes_realizados} producto(s) actualizados.', 'success')
+    else:
+        flash('Todos los productos ya estaban en cero.', 'info')
     return redirect(url_for('inventario.ajuste_inventario'))
 
 
