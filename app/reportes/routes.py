@@ -66,12 +66,24 @@ def informe_mensual():
     utilidad_neta = margen_contribucion - costos_fijos
     margen_neto_pct = (utilidad_neta / total_ventas * 100) if total_ventas else Decimal('0')
 
-    # La meta parte de todos los egresos del mes: a mayor compra, mayor venta requerida.
+    # Las compras crecen junto con las ventas, usando el porcentaje real de compra del mes.
+    porcentaje_compras = total_compras / total_ventas if total_ventas else Decimal('0')
+    margen_bruto_pct = Decimal('1') - porcentaje_compras
+    margen_disponible_pct = margen_bruto_pct - utilidad_objetivo / 100
     costos_totales = total_compras + costos_fijos
-    ventas_objetivo = costos_totales / (Decimal('1') - utilidad_objetivo / 100)
-    utilidad_objetivo_valor = ventas_objetivo * utilidad_objetivo / 100
-    diferencia_objetivo = total_ventas - ventas_objetivo
-    cobertura_objetivo_pct = (total_ventas / ventas_objetivo * 100) if ventas_objetivo else Decimal('0')
+    ventas_objetivo = None
+    compras_proyectadas = None
+    incremento_compras = None
+    utilidad_objetivo_valor = None
+    diferencia_objetivo = None
+    cobertura_objetivo_pct = None
+    if total_ventas and margen_disponible_pct > 0:
+        ventas_objetivo = costos_fijos / margen_disponible_pct
+        compras_proyectadas = ventas_objetivo * porcentaje_compras
+        incremento_compras = compras_proyectadas - total_compras
+        utilidad_objetivo_valor = ventas_objetivo * utilidad_objetivo / 100
+        diferencia_objetivo = total_ventas - ventas_objetivo
+        cobertura_objetivo_pct = total_ventas / ventas_objetivo * 100
 
     categorias_platos = {'almuerzos': 'Almuerzos', 'desayunos': 'Desayunos', 'parrillas': 'Parrillas'}
     platos_por_categoria = {nombre: 0 for nombre in categorias_platos.values()}
@@ -87,7 +99,7 @@ def informe_mensual():
 
     total_platos = sum(platos_por_categoria.values())
     promedio_venta_por_plato = total_ventas / total_platos if total_platos else Decimal('0')
-    platos_objetivo = ventas_objetivo / promedio_venta_por_plato if promedio_venta_por_plato else Decimal('0')
+    platos_objetivo = ventas_objetivo / promedio_venta_por_plato if ventas_objetivo and promedio_venta_por_plato else Decimal('0')
     resumen_platos = []
     for categoria, cantidad in platos_por_categoria.items():
         proporcion = Decimal(cantidad) / total_platos if total_platos else Decimal('0')
@@ -150,6 +162,8 @@ def informe_mensual():
         gastos_por_tipo=dict(sorted(gastos_por_tipo.items())),
         costos_fijos=costos_fijos,
         costos_totales=costos_totales,
+        porcentaje_compras=porcentaje_compras,
+        margen_bruto_pct=margen_bruto_pct,
         margen_contribucion=margen_contribucion,
         margen_contribucion_pct=margen_contribucion_pct,
         utilidad_neta=utilidad_neta,
@@ -157,6 +171,8 @@ def informe_mensual():
         utilidad_objetivo=utilidad_objetivo,
         utilidad_objetivo_valor=utilidad_objetivo_valor,
         ventas_objetivo=ventas_objetivo,
+        compras_proyectadas=compras_proyectadas,
+        incremento_compras=incremento_compras,
         diferencia_objetivo=diferencia_objetivo,
         cobertura_objetivo_pct=cobertura_objetivo_pct,
         total_platos=total_platos,

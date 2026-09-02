@@ -44,7 +44,7 @@
         <div class="card h-100"><div class="card-body">
             <small class="text-muted">Compras (variable)</small>
             <h4 class="mb-0 text-warning">${{ "{:,.0f}".format(total_compras) }}</h4>
-            <small class="text-muted">{{ '%.1f'|format((total_compras / total_ventas * 100) if total_ventas else 0) }}% de ventas</small>
+            <small class="text-muted">{{ '%.1f'|format(porcentaje_compras * 100) }}% de ventas</small>
         </div></div>
     </div>
     <div class="col-md-3">
@@ -86,13 +86,19 @@
         <div class="card h-100 {{ 'border-success' if diferencia_objetivo >= 0 else 'border-danger' }}">
             <div class="card-header"><h5 class="mb-0">{{ 'Punto de equilibrio' if utilidad_objetivo == 0 else 'Meta de ventas' }}</h5></div>
             <div class="card-body">
+                {% if ventas_objetivo is not none %}
                 <div class="text-muted small">Costos a cubrir: compras, nómina, servicios y otros gastos{% if utilidad_objetivo > 0 %}, más {{ '%.1f'|format(utilidad_objetivo) }}% de utilidad{% endif %}.</div>
                 <h3 class="mt-2">${{ "{:,.0f}".format(ventas_objetivo) }}</h3>
-                <p class="mb-2">Costos del mes: <strong>${{ "{:,.0f}".format(costos_totales) }}</strong>{% if utilidad_objetivo > 0 %} | Utilidad objetivo: <strong>${{ "{:,.0f}".format(utilidad_objetivo_valor) }}</strong>{% endif %}</p>
+                <p class="mb-1">Compras proyectadas: <strong>${{ "{:,.0f}".format(compras_proyectadas) }}</strong> ({{ '%.1f'|format(porcentaje_compras * 100) }}% de la venta objetivo).</p>
+                <p class="mb-1">Compra adicional requerida: <strong class="text-warning">${{ "{:,.0f}".format(incremento_compras|abs) }}</strong>{% if incremento_compras < 0 %} menos que las compras actuales{% endif %}.</p>
+                <p class="mb-2">Costos fijos: <strong>${{ "{:,.0f}".format(costos_fijos) }}</strong>{% if utilidad_objetivo > 0 %} | Utilidad objetivo: <strong>${{ "{:,.0f}".format(utilidad_objetivo_valor) }}</strong>{% endif %}</p>
                 <p class="mb-2">Ventas actuales: <strong>${{ "{:,.0f}".format(total_ventas) }}</strong> ({{ '%.1f'|format(cobertura_objetivo_pct) }}% de la meta).</p>
                 <div class="alert {{ 'alert-success' if diferencia_objetivo >= 0 else 'alert-danger' }} mb-0 py-2">
                     {% if diferencia_objetivo >= 0 %}Superó la meta en ${{ "{:,.0f}".format(diferencia_objetivo) }}.{% else %}Faltan ${{ "{:,.0f}".format(diferencia_objetivo|abs) }} en ventas para llegar a la meta.{% endif %}
                 </div>
+                {% else %}
+                <div class="alert alert-warning mb-0">No es posible alcanzar una utilidad de {{ '%.1f'|format(utilidad_objetivo) }}% con el margen actual: las compras ya representan {{ '%.1f'|format(porcentaje_compras * 100) }}% de las ventas. Reduzca el porcentaje deseado o el costo de compras.</div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -133,7 +139,7 @@
     <div class="card-body"><canvas id="graficaMensual" height="85"></canvas></div>
 </div>
 
-<div class="alert alert-secondary small mb-0"><strong>Base de cálculo:</strong> meta de ventas = (compras + nómina + servicios + otros gastos) / (1 - utilidad deseada). Con 0% se obtiene el punto de equilibrio; al subir las compras o el porcentaje de utilidad deseado, también sube la venta requerida. La meta de platos conserva la mezcla actual entre almuerzos, desayunos y parrillas.</div>
+<div class="alert alert-secondary small mb-0"><strong>Base de cálculo:</strong> la compra variable se proyecta en {{ '%.1f'|format(porcentaje_compras * 100) }}% de cada venta adicional. Meta de ventas = costos fijos / (1 - % compras - % utilidad deseada). Por eso, al aumentar las ventas para lograr más utilidad, también aumentan las compras proyectadas. La meta de platos conserva la mezcla actual entre almuerzos, desayunos y parrillas.</div>
 {% endblock %}
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
