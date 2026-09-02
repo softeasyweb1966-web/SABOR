@@ -25,8 +25,11 @@ def informe_mensual():
 
     mes = request.args.get('mes', date.today().month, type=int)
     anio = request.args.get('anio', date.today().year, type=int)
+    utilidad_objetivo = Decimal(str(request.args.get('utilidad_objetivo', 0, type=float) or 0))
     if not 1 <= mes <= 12:
         mes = date.today().month
+    if utilidad_objetivo < 0 or utilidad_objetivo >= 100:
+        utilidad_objetivo = Decimal('0')
 
     inicio_mes = date(anio, mes, 1)
     ultimo_dia = monthrange(anio, mes)[1]
@@ -63,13 +66,36 @@ def informe_mensual():
     utilidad_neta = margen_contribucion - costos_fijos
     margen_neto_pct = (utilidad_neta / total_ventas * 100) if total_ventas else Decimal('0')
 
-    punto_equilibrio = None
-    cobertura_pe_pct = None
-    diferencia_pe = None
-    if margen_contribucion_pct > 0:
-        punto_equilibrio = costos_fijos / (margen_contribucion_pct / 100)
-        diferencia_pe = total_ventas - punto_equilibrio
-        cobertura_pe_pct = (total_ventas / punto_equilibrio * 100) if punto_equilibrio else Decimal('0')
+    # La meta parte de todos los egresos del mes: a mayor compra, mayor venta requerida.
+    costos_totales = total_compras + costos_fijos
+    ventas_objetivo = costos_totales / (Decimal('1') - utilidad_objetivo / 100)
+    utilidad_objetivo_valor = ventas_objetivo * utilidad_objetivo / 100
+    diferencia_objetivo = total_ventas - ventas_objetivo
+    cobertura_objetivo_pct = (total_ventas / ventas_objetivo * 100) if ventas_objetivo else Decimal('0')
+
+    categorias_platos = {'almuerzos': 'Almuerzos', 'desayunos': 'Desayunos', 'parrillas': 'Parrillas'}
+    platos_por_categoria = {nombre: 0 for nombre in categorias_platos.values()}
+    detalles_platos = db.session.query(VentaDetalle).join(VentaDiaria).filter(
+        VentaDiaria.fecha.between(inicio_mes, fin_mes),
+        VentaDiaria.estado.in_(['cerrado_caja', 'cerrado_definitivo']),
+        VentaDetalle.es_cortesia == False
+    ).all()
+    for detalle in detalles_platos:
+        categoria = detalle.producto.categoria.nombre.strip().lower()
+        if categoria in categorias_platos:
+            platos_por_categoria[categorias_platos[categoria]] += detalle.cantidad
+
+    total_platos = sum(platos_por_categoria.values())
+    promedio_venta_por_plato = total_ventas / total_platos if total_platos else Decimal('0')
+    platos_objetivo = ventas_objetivo / promedio_venta_por_plato if promedio_venta_por_plato else Decimal('0')
+    resumen_platos = []
+    for categoria, cantidad in platos_por_categoria.items():
+        proporcion = Decimal(cantidad) / total_platos if total_platos else Decimal('0')
+        resumen_platos.append({
+            'categoria': categoria,
+            'cantidad': cantidad,
+            'objetivo': platos_objetivo * proporcion
+        })
 
     # El comportamiento diario permite ver si el ritmo de ventas acompana las compras y gastos.
     ventas_por_fecha = defaultdict(lambda: Decimal('0'))
@@ -123,13 +149,19 @@ def informe_mensual():
         otros_gastos=otros_gastos,
         gastos_por_tipo=dict(sorted(gastos_por_tipo.items())),
         costos_fijos=costos_fijos,
+        costos_totales=costos_totales,
         margen_contribucion=margen_contribucion,
         margen_contribucion_pct=margen_contribucion_pct,
         utilidad_neta=utilidad_neta,
         margen_neto_pct=margen_neto_pct,
-        punto_equilibrio=punto_equilibrio,
-        diferencia_pe=diferencia_pe,
-        cobertura_pe_pct=cobertura_pe_pct,
+        utilidad_objetivo=utilidad_objetivo,
+        utilidad_objetivo_valor=utilidad_objetivo_valor,
+        ventas_objetivo=ventas_objetivo,
+        diferencia_objetivo=diferencia_objetivo,
+        cobertura_objetivo_pct=cobertura_objetivo_pct,
+        total_platos=total_platos,
+        promedio_venta_por_plato=promedio_venta_por_plato,
+        resumen_platos=resumen_platos,
         dias_con_ventas=len(dias_con_ventas),
         promedio_diario=promedio_diario,
         mejor_dia=mejor_dia,
