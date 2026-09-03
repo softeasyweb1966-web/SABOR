@@ -26,6 +26,7 @@ def informe_mensual():
     mes = request.args.get('mes', date.today().month, type=int)
     anio = request.args.get('anio', date.today().year, type=int)
     utilidad_objetivo = Decimal(str(request.args.get('utilidad_objetivo', 0, type=float) or 0))
+    dias_trabajo_param = request.args.get('dias_trabajo', type=int)
     if not 1 <= mes <= 12:
         mes = date.today().month
     if utilidad_objetivo < 0 or utilidad_objetivo >= 100:
@@ -133,6 +134,9 @@ def informe_mensual():
     dias_con_ventas = [dia for dia in dias if dia['ventas'] > 0]
     mejor_dia = max(dias_con_ventas, key=lambda dia: dia['ventas']) if dias_con_ventas else None
     promedio_diario = total_ventas / len(dias_con_ventas) if dias_con_ventas else Decimal('0')
+    dias_trabajo = dias_trabajo_param if dias_trabajo_param and dias_trabajo_param > 0 else len(dias_con_ventas)
+    venta_diaria_objetivo = ventas_objetivo / dias_trabajo if ventas_objetivo and dias_trabajo else None
+    diferencia_promedio_diario = promedio_diario - venta_diaria_objetivo if venta_diaria_objetivo else None
 
     if mes == 1:
         mes_anterior, anio_anterior = 12, anio - 1
@@ -179,7 +183,10 @@ def informe_mensual():
         promedio_venta_por_plato=promedio_venta_por_plato,
         resumen_platos=resumen_platos,
         dias_con_ventas=len(dias_con_ventas),
+        dias_trabajo=dias_trabajo,
         promedio_diario=promedio_diario,
+        venta_diaria_objetivo=venta_diaria_objetivo,
+        diferencia_promedio_diario=diferencia_promedio_diario,
         mejor_dia=mejor_dia,
         total_ventas_anterior=total_ventas_anterior,
         variacion_ventas_pct=variacion_ventas_pct,

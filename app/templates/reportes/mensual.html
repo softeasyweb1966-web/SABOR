@@ -27,6 +27,8 @@
                 <input id="utilidad_objetivo" type="number" name="utilidad_objetivo" min="0" max="99" step="0.1" class="form-control" value="{{ utilidad_objetivo }}">
                 <span class="input-group-text">%</span>
             </div>
+            <label class="text-muted small mb-0" for="dias_trabajo">Días trabajados</label>
+            <input id="dias_trabajo" type="number" name="dias_trabajo" min="1" max="31" class="form-control form-control-sm" style="width:80px;" value="{{ dias_trabajo }}">
             <button type="submit" class="btn btn-sm btn-primary">Consultar</button>
         </form>
     </div>
@@ -106,8 +108,25 @@
 
 <div class="row g-3 mb-3">
     <div class="col-md-4"><div class="card h-100"><div class="card-body"><small class="text-muted">Días con ventas cerradas</small><h4 class="mb-0">{{ dias_con_ventas }}</h4></div></div></div>
-    <div class="col-md-4"><div class="card h-100"><div class="card-body"><small class="text-muted">Promedio diario de ventas</small><h4 class="mb-0">${{ "{:,.0f}".format(promedio_diario) }}</h4></div></div></div>
+    <div class="col-md-4"><div class="card h-100"><div class="card-body"><small class="text-muted">Promedio diario de ventas</small><h4 class="mb-0">${{ "{:,.0f}".format(promedio_diario) }}</h4><small class="text-muted">Con {{ dias_con_ventas }} días cerrados</small></div></div></div>
     <div class="col-md-4"><div class="card h-100"><div class="card-body"><small class="text-muted">Mejor día de ventas</small><h4 class="mb-0">{{ mejor_dia.fecha.strftime('%d/%m') if mejor_dia else '-' }}</h4><small class="text-success">${{ "{:,.0f}".format(mejor_dia.ventas) if mejor_dia else '0' }}</small></div></div></div>
+</div>
+
+<div class="card mb-3 {{ 'border-success' if diferencia_promedio_diario is not none and diferencia_promedio_diario >= 0 else 'border-warning' }}">
+    <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <h5 class="mb-1">Meta diaria de ventas</h5>
+            <small class="text-muted">Calculada sobre {{ dias_trabajo }} días trabajados en el mes y la utilidad deseada.</small>
+        </div>
+        {% if venta_diaria_objetivo is not none %}
+        <div class="text-end">
+            <h3 class="mb-0">${{ "{:,.0f}".format(venta_diaria_objetivo) }}</h3>
+            <small class="{{ 'text-success' if diferencia_promedio_diario >= 0 else 'text-danger' }}">{{ 'Promedio actual supera la meta por' if diferencia_promedio_diario >= 0 else 'Al promedio actual le faltan' }} ${{ "{:,.0f}".format(diferencia_promedio_diario|abs) }} por día</small>
+        </div>
+        {% else %}
+        <div class="text-muted">Seleccione una meta de utilidad viable para calcular la venta diaria esperada.</div>
+        {% endif %}
+    </div>
 </div>
 
 <div class="card mb-3">
