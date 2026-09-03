@@ -85,7 +85,7 @@
         </div>
     </div>
     <div class="col-lg-5">
-        <div class="card h-100 {{ 'border-success' if diferencia_objetivo >= 0 else 'border-danger' }}">
+        <div class="card h-100 {{ 'border-success' if diferencia_objetivo is not none and diferencia_objetivo >= 0 else 'border-danger' }}">
             <div class="card-header"><h5 class="mb-0">{{ 'Punto de equilibrio' if utilidad_objetivo == 0 else 'Meta de ventas' }}</h5></div>
             <div class="card-body">
                 {% if ventas_objetivo is not none %}
