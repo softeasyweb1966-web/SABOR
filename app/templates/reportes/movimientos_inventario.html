@@ -8,20 +8,40 @@
     </a>
 </div>
 
-<!-- Selector de fecha -->
+<!-- Filtros del informe -->
 <div class="card mb-3">
     <div class="card-body py-2">
-        <form method="GET" class="d-flex align-items-center gap-3">
+        <form method="GET" class="d-flex flex-wrap align-items-center gap-3">
             <label class="text-muted small mb-0">Fecha:</label>
             <input type="date" name="fecha" class="form-control form-control-sm" style="width:180px;"
                    value="{{ fecha_sel.strftime('%Y-%m-%d') if fecha_sel else '' }}">
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                        id="filtro-categorias" data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                        aria-expanded="false">
+                    Categorías: <span id="resumen-categorias">{{ (categorias_sel|length ~ ' seleccionadas') if categorias_sel else 'Todas' }}</span>
+                </button>
+                <div class="dropdown-menu p-3" aria-labelledby="filtro-categorias"
+                     style="min-width:260px; max-height:320px; overflow-y:auto;">
+                    <button type="button" class="btn btn-sm btn-link p-0 mb-2" id="limpiar-categorias">Mostrar todas</button>
+                    {% for categoria in categorias %}
+                    <div class="form-check">
+                        <input class="form-check-input filtro-categoria" type="checkbox" name="categoria"
+                               value="{{ categoria.id }}" id="categoria-{{ categoria.id }}"
+                               {% if categoria.id in categorias_sel %}checked{% endif %}>
+                        <label class="form-check-label" for="categoria-{{ categoria.id }}">{{ categoria.nombre }}</label>
+                    </div>
+                    {% endfor %}
+                    <div class="text-muted small mt-2">Marque una o varias y pulse Ver. Sin marcar: todas.</div>
+                </div>
+            </div>
             <button type="submit" class="btn btn-sm btn-outline-primary">
                 <i class="bi bi-search"></i> Ver
             </button>
             {% if dias_disponibles %}
             <span class="text-muted small ms-3">Últimos días:</span>
             {% for dia in dias_disponibles[:5] %}
-            <a href="{{ url_for('reportes.movimientos_inventario', fecha=dia.fecha.strftime('%Y-%m-%d')) }}"
+            <a href="{{ url_for('reportes.movimientos_inventario', fecha=dia.fecha.strftime('%Y-%m-%d'), categoria=categorias_sel) }}"
                class="btn btn-sm {{ 'btn-primary' if dia.fecha == fecha_sel else 'btn-outline-secondary' }}">
                 {{ dia.fecha.strftime('%d/%m') }}
             </a>
@@ -84,7 +104,24 @@
 </div>
 {% else %}
 <div class="alert alert-warning">
-    <i class="bi bi-info-circle"></i> No hay movimientos de inventario para esta fecha.
+    <i class="bi bi-info-circle"></i> No hay movimientos de inventario para esta fecha{% if categorias_sel %} en las categorías seleccionadas{% endif %}.
 </div>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const categorias = document.querySelectorAll('.filtro-categoria');
+    function actualizarResumenCategorias() {
+        const cantidad = Array.from(categorias).filter(categoria => categoria.checked).length;
+        document.getElementById('resumen-categorias').textContent = cantidad
+            ? `${cantidad} seleccionada${cantidad === 1 ? '' : 's'}` : 'Todas';
+    }
+    categorias.forEach(categoria => categoria.addEventListener('change', actualizarResumenCategorias));
+    document.getElementById('limpiar-categorias').addEventListener('click', () => {
+        categorias.forEach(categoria => categoria.checked = false);
+        actualizarResumenCategorias();
+    });
+    actualizarResumenCategorias();
+</script>
 {% endblock %}

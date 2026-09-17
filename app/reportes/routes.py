@@ -279,52 +279,16 @@ def ventas_por_categoria():
                            total_general=total_general,
                            fecha_desde=fecha_desde or '',
                            fecha_hasta=fecha_hasta or '')
-@login_required
-def movimientos_inventario():
-    """Consulta de movimientos de inventario por día."""
-    fecha_str = request.args.get('fecha')
-    fecha_sel = None
-
-    if fecha_str:
-        try:
-            from datetime import datetime
-            fecha_sel = datetime.strptime(fecha_str, '%Y-%m-%d').date()
-        except ValueError:
-            fecha_sel = None
-
-    if not fecha_sel:
-        ultimo_dia = VentaDiaria.query.filter(
-            VentaDiaria.estado.in_(['cerrado_caja', 'cerrado_definitivo'])
-        ).order_by(VentaDiaria.fecha.desc()).first()
-        if ultimo_dia:
-            fecha_sel = ultimo_dia.fecha
-        else:
-            fecha_sel = date.today()
-
-    venta_dia = VentaDiaria.query.filter_by(fecha=fecha_sel).first()
-
-    movimientos = MovimientoInventario.query.filter(
-        MovimientoInventario.fecha == fecha_sel,
-        MovimientoInventario.producto_id != None
-    ).all()
-    movimientos.sort(key=lambda x: x.producto.nombre if x.producto else '')
-
-    dias_disponibles = VentaDiaria.query.filter(
-        VentaDiaria.estado.in_(['cerrado_caja', 'cerrado_definitivo'])
-    ).order_by(VentaDiaria.fecha.desc()).limit(15).all()
-
-    return render_template('reportes/movimientos_inventario.html',
-                           movimientos=movimientos,
-                           fecha_sel=fecha_sel,
-                           venta_dia=venta_dia,
-                           dias_disponibles=dias_disponibles)
 
 
 @bp.route('/movimientos-inventario')
 @login_required
 def movimientos_inventario():
     """Consulta de movimientos de inventario por día."""
-    from app.models import MovimientoInventario
+    from app.models import Categoria, Producto
+    categorias = Categoria.query.order_by(Categoria.nombre).all()
+    categorias_solicitadas = set(request.args.getlist('categoria', type=int))
+    categorias_sel = [c.id for c in categorias if c.id in categorias_solicitadas]
     fecha_str = request.args.get('fecha')
     fecha_sel = None
 
@@ -346,10 +310,15 @@ def movimientos_inventario():
 
     venta_dia = VentaDiaria.query.filter_by(fecha=fecha_sel).first()
 
-    movimientos = MovimientoInventario.query.filter(
+    query = MovimientoInventario.query.filter(
         MovimientoInventario.fecha == fecha_sel,
         MovimientoInventario.producto_id != None
-    ).all()
+    )
+    if categorias_sel:
+        query = query.join(MovimientoInventario.producto).filter(
+            Producto.categoria_id.in_(categorias_sel)
+        )
+    movimientos = query.all()
     movimientos.sort(key=lambda x: x.producto.nombre if x.producto else '')
 
     dias_disponibles = VentaDiaria.query.filter(
@@ -360,7 +329,9 @@ def movimientos_inventario():
                            movimientos=movimientos,
                            fecha_sel=fecha_sel,
                            venta_dia=venta_dia,
-                           dias_disponibles=dias_disponibles)
+                           dias_disponibles=dias_disponibles,
+                           categorias=categorias,
+                           categorias_sel=categorias_sel)
 
 
 @bp.route('/cortesias')
