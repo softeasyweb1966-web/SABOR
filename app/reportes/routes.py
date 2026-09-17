@@ -84,7 +84,8 @@ def informe_mensual():
         incremento_compras = compras_proyectadas - total_compras
         utilidad_objetivo_valor = ventas_objetivo * utilidad_objetivo / 100
         diferencia_objetivo = total_ventas - ventas_objetivo
-        cobertura_objetivo_pct = total_ventas / ventas_objetivo * 100
+        # Una meta de cero es válida si no hay costos fijos; su cobertura no tiene porcentaje.
+        cobertura_objetivo_pct = total_ventas / ventas_objetivo * 100 if ventas_objetivo else None
 
     categorias_platos = {'almuerzos': 'Almuerzos', 'desayunos': 'Desayunos', 'parrillas': 'Parrillas'}
     platos_por_categoria = {nombre: 0 for nombre in categorias_platos.values()}
@@ -135,8 +136,8 @@ def informe_mensual():
     mejor_dia = max(dias_con_ventas, key=lambda dia: dia['ventas']) if dias_con_ventas else None
     promedio_diario = total_ventas / len(dias_con_ventas) if dias_con_ventas else Decimal('0')
     dias_trabajo = dias_trabajo_param if dias_trabajo_param and dias_trabajo_param > 0 else len(dias_con_ventas)
-    venta_diaria_objetivo = ventas_objetivo / dias_trabajo if ventas_objetivo and dias_trabajo else None
-    diferencia_promedio_diario = promedio_diario - venta_diaria_objetivo if venta_diaria_objetivo else None
+    venta_diaria_objetivo = ventas_objetivo / dias_trabajo if ventas_objetivo is not None and dias_trabajo else None
+    diferencia_promedio_diario = promedio_diario - venta_diaria_objetivo if venta_diaria_objetivo is not None else None
 
     if mes == 1:
         mes_anterior, anio_anterior = 12, anio - 1

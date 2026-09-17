@@ -94,7 +94,10 @@
                 <p class="mb-1">Compras proyectadas: <strong>${{ "{:,.0f}".format(compras_proyectadas) }}</strong> ({{ '%.1f'|format(porcentaje_compras * 100) }}% de la venta objetivo).</p>
                 <p class="mb-1">Compra adicional requerida: <strong class="text-warning">${{ "{:,.0f}".format(incremento_compras|abs) }}</strong>{% if incremento_compras < 0 %} menos que las compras actuales{% endif %}.</p>
                 <p class="mb-2">Costos fijos: <strong>${{ "{:,.0f}".format(costos_fijos) }}</strong>{% if utilidad_objetivo > 0 %} | Utilidad objetivo: <strong>${{ "{:,.0f}".format(utilidad_objetivo_valor) }}</strong>{% endif %}</p>
-                <p class="mb-2">Ventas actuales: <strong>${{ "{:,.0f}".format(total_ventas) }}</strong> ({{ '%.1f'|format(cobertura_objetivo_pct) }}% de la meta).</p>
+                <p class="mb-2">Ventas actuales: <strong>${{ "{:,.0f}".format(total_ventas) }}</strong>{% if cobertura_objetivo_pct is not none %} ({{ '%.1f'|format(cobertura_objetivo_pct) }}% de la meta){% endif %}.</p>
+                {% if ventas_objetivo == 0 %}
+                <p class="text-muted small">Sin costos fijos registrados, la meta calculada es $0 y no aplica un porcentaje de cobertura.</p>
+                {% endif %}
                 <div class="alert {{ 'alert-success' if diferencia_objetivo >= 0 else 'alert-danger' }} mb-0 py-2">
                     {% if diferencia_objetivo >= 0 %}Superó la meta en ${{ "{:,.0f}".format(diferencia_objetivo) }}.{% else %}Faltan ${{ "{:,.0f}".format(diferencia_objetivo|abs) }} en ventas para llegar a la meta.{% endif %}
                 </div>
