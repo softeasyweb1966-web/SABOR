@@ -4,6 +4,7 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 from config import Config
+from sqlalchemy import text
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -14,6 +15,27 @@ login_manager.login_message_category = 'warning'
 csrf = CSRFProtect()
 
 
+def ensure_purchase_registration_columns(app):
+    """Keep deployed databases compatible with the purchase registration date fields."""
+    with app.app_context():
+        try:
+            with db.engine.begin() as conn:
+                if db.engine.dialect.name != 'postgresql':
+                    app.logger.warning("La base configurada no es PostgreSQL; se omite migracion de compras.")
+                    return
+
+                for table_name in ('comprobantes_compra', 'compras'):
+                    conn.execute(text(
+                        f"ALTER TABLE {table_name} "
+                        "ADD COLUMN IF NOT EXISTS fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+                    ))
+                    conn.execute(text(
+                        f"UPDATE {table_name} SET fecha_registro = fecha WHERE fecha_registro IS NULL"
+                    ))
+        except Exception as exc:
+            app.logger.warning("No se pudo verificar fecha_registro de compras: %s", exc)
+
+
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
@@ -22,6 +44,7 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
+    ensure_purchase_registration_columns(app)
 
     # Registrar blueprints
     from app.auth import bp as auth_bp
