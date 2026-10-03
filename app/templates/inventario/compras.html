@@ -20,7 +20,8 @@
                 <thead class="table-light">
                     <tr>
                         <th>#</th>
-                        <th>Fecha</th>
+                        <th>Fecha compra</th>
+                        <th>Registrado</th>
                         <th>Proveedor</th>
                         <th>Forma Pago</th>
                         <th class="text-end">Total</th>
@@ -34,6 +35,7 @@
                     <tr>
                         <td>{{ comp.id }}</td>
                         <td>{{ comp.fecha.strftime('%d/%m/%Y') }}</td>
+                        <td class="small text-muted">{{ comp.fecha_registro.strftime('%d/%m/%Y %H:%M') if comp.fecha_registro else '-' }}</td>
                         <td>{{ comp.proveedor or '-' }}</td>
                         <td>
                             {% if comp.forma_pago == 'Caja Menor' %}

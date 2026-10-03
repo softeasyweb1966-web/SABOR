@@ -114,6 +114,7 @@ class Compra(db.Model):
     cantidad = db.Column(db.Numeric(12, 3), nullable=False)
     costo_total = db.Column(db.Numeric(12, 2), nullable=False)
     fecha = db.Column(db.Date, default=date.today)
+    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     proveedor = db.Column(db.String(150))
     observacion = db.Column(db.String(200))
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'))
@@ -128,6 +129,7 @@ class ComprobanteCompra(db.Model):
     __tablename__ = 'comprobantes_compra'
     id = db.Column(db.Integer, primary_key=True)
     fecha = db.Column(db.Date, default=date.today, nullable=False)
+    fecha_registro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     proveedor = db.Column(db.String(150))
     forma_pago = db.Column(db.String(20), default='Caja General')  # Caja Menor, Caja General
     total = db.Column(db.Numeric(12, 2), default=0)

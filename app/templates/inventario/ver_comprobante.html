@@ -11,7 +11,8 @@
 <div class="card mb-3">
     <div class="card-body">
         <div class="row">
-            <div class="col-md-3"><strong>Fecha:</strong> {{ comprobante.fecha.strftime('%d/%m/%Y') }}</div>
+            <div class="col-md-3"><strong>Fecha compra:</strong> {{ comprobante.fecha.strftime('%d/%m/%Y') }}</div>
+            <div class="col-md-3"><strong>Registrado:</strong> {{ comprobante.fecha_registro.strftime('%d/%m/%Y %H:%M') if comprobante.fecha_registro else '-' }}</div>
             <div class="col-md-3"><strong>Proveedor:</strong> {{ comprobante.proveedor or '-' }}</div>
             <div class="col-md-3"><strong>Forma pago:</strong>
                 {% if comprobante.forma_pago == 'Caja Menor' %}
@@ -20,7 +21,7 @@
                 <span class="badge bg-primary">Caja General</span>
                 {% endif %}
             </div>
-            <div class="col-md-3"><strong>Total:</strong> <span class="fs-5">${{ "{:,.0f}".format(comprobante.total) }}</span></div>
+            <div class="col-md-3 mt-2"><strong>Total:</strong> <span class="fs-5">${{ "{:,.0f}".format(comprobante.total) }}</span></div>
         </div>
         {% if comprobante.observacion %}
         <div class="mt-2"><strong>Obs:</strong> {{ comprobante.observacion }}</div>

@@ -7,7 +7,7 @@ from app.models import (Producto, Compra, Categoria, ComprobanteCompra, CajaMeno
                         MovimientoCajaMenor, AjusteInventario, VentaDiaria, VentaDetalle)
 from app.decorators import rol_requerido
 from decimal import Decimal
-from datetime import date
+from datetime import date, datetime
 
 
 # ============================================================
@@ -209,6 +209,13 @@ def finalizar_comprobante(comprobante_id):
     proveedor = request.form.get('proveedor', '').strip()
     forma_pago = request.form.get('forma_pago', 'Caja General')
     observacion = request.form.get('observacion', '').strip()
+    fecha_str = request.form.get('fecha')
+
+    try:
+        fecha_compra = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else date.today()
+    except ValueError:
+        flash('La fecha de compra no es valida.', 'danger')
+        return redirect(url_for('inventario.nuevo_comprobante'))
 
     items = Compra.query.filter_by(comprobante_id=comprobante.id).all()
     if not items:
@@ -216,10 +223,13 @@ def finalizar_comprobante(comprobante_id):
         return redirect(url_for('inventario.nuevo_comprobante'))
 
     total = sum(c.costo_total for c in items)
+    comprobante.fecha = fecha_compra
     comprobante.proveedor = proveedor
     comprobante.forma_pago = forma_pago
     comprobante.observacion = observacion
     comprobante.total = total
+    for item in items:
+        item.fecha = fecha_compra
 
     # Si es Caja Menor, descontar del saldo
     if forma_pago == 'Caja Menor':
@@ -231,7 +241,7 @@ def finalizar_comprobante(comprobante_id):
             caja.saldo_actual -= total
             mov = MovimientoCajaMenor(
                 caja_menor_id=caja.id,
-                fecha=comprobante.fecha,
+                fecha=fecha_compra,
                 tipo='compra',
                 monto=total,
                 descripcion=f'Comprobante #{comprobante.id} - {proveedor or "Sin proveedor"}',
