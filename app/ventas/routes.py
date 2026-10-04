@@ -197,7 +197,7 @@ def agregar_venta():
 @bp.route('/cortesia', methods=['POST'])
 @login_required
 def agregar_cortesia():
-    """Registrar cortesía (solo almuerzos)."""
+    """Registrar cortesía."""
     venta_dia = obtener_venta_abierta()
     if not venta_dia or venta_dia.estado != 'abierto':
         flash('No hay un dia abierto.', 'danger')
@@ -212,13 +212,13 @@ def agregar_cortesia():
         flash('Producto no encontrado.', 'danger')
         return redirect(url_for('ventas.index'))
 
-    # Verificar que sea almuerzo, parrilla o bebida
+    # Verificar que sea una categoria permitida para cortesias
     categorias_cortesia = Categoria.query.filter(
-        Categoria.nombre.in_(['Almuerzos', 'Parrillas', 'Bebidas'])
+        Categoria.nombre.in_(['Desayunos', 'Almuerzos', 'Parrillas', 'Bebidas'])
     ).all()
     cat_ids_cortesia = [c.id for c in categorias_cortesia]
     if producto.categoria_id not in cat_ids_cortesia:
-        flash('Las cortesias solo aplican para almuerzos, parrillas y bebidas.', 'warning')
+        flash('Las cortesias solo aplican para desayunos, almuerzos, parrillas y bebidas.', 'warning')
         return redirect(url_for('ventas.index'))
 
     detalle = VentaDetalle(

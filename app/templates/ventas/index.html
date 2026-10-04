@@ -66,9 +66,8 @@
             {% endfor %}
         </div>
 
-        <!-- Cortesías (solo almuerzos) -->
-        <!-- Cortesías (almuerzos, parrillas, bebidas) -->
-        {% set cats_cortesia = categorias|selectattr('nombre', 'in', ['Almuerzos', 'Parrillas', 'Bebidas'])|list %}
+        <!-- Cortesías -->
+        {% set cats_cortesia = categorias|selectattr('nombre', 'in', ['Desayunos', 'Almuerzos', 'Parrillas', 'Bebidas'])|list %}
         {% set prods_cortesia = [] %}
         {% for cat in cats_cortesia %}
             {% for prod in productos_por_cat.get(cat.id, []) %}
